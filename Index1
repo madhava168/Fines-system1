@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Late Monitoring</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* Basic Styling for readability */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 800px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+        .dashboard { display: none; }
+        #login-page { max-width: 400px; margin: auto; }
+        #login-page h1 { font-size: 22px; color: #0056b3; margin-bottom: 8px; font-weight: 600; }
+        #login-page h2 { font-size: 18px; color: #444; font-weight: 400; margin-bottom: 30px; }
+        h1, h2 { text-align: center; color: #333; }
+        h3 { margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+        .form-group { margin-bottom: 15px; }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .form-group { flex: 1; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="email"], input[type="password"], input[type="text"], input[type="date"], input[type="month"], input[type="number"], select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        textarea { resize: vertical; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 5px; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        #logout-button { background-color: #dc3545; margin-top: 20px; }
+        #logout-button:hover { background-color: #c82333; }
+        .action-button { width: auto; padding: 8px 12px; font-size: 14px; }
+        .error-message { color: red; }
+        .success-message { color: green; }
+        .info-message { color: #555; }
+        #user-info { text-align: center; margin-bottom: 20px; padding: 10px; background-color: #e9ecef; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
+        th { background-color: #f2f2f2; }
+        td.remarks-cell { font-size: 12px; line-height: 1.4; max-width: 200px; word-wrap: break-word; }
+        .paid { color: green; font-weight: bold; }
+        .unpaid { color: red; font-weight: bold; }
+        .partially-paid { color: #fd7e14; font-weight: bold; }
+        .student-list-container { max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; }
+        #fine-summary-container { margin-top: 20px; padding: 15px; border: 1px solid #ffc107; background-color: #fff3cd; border-radius: 5px; }
+        #history-results-display ul { list-style-type: disc; margin-left: 20px; }
+        .main-footer { margin-top: auto; }
+        .impose-fine-form { border: 1px solid #007bff; padding: 20px; border-radius: 8px; margin-top: 15px; background-color: #f8f9fa;}
+    </style>
+</head>
+<body>
+<!-- Hamburger Menu -->
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+  }
+
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #333;
+    color: white;
+    padding: 10px 20px;
+  }
+
+  .navbar h2 {
+    margin: 0;
+  }
+
+  .menu-toggle {
+    font-size: 26px;
+    cursor: pointer;
+    display: block;
+  }
+
+  .menu {
+    display: none;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    width: 200px;
+    background-color: #333;
+    flex-direction: column;
+    padding: 10px 0;
+    z-index: 1000;
+  }
+
+  .menu a {
+    color: white;
+    padding: 12px 20px;
+    text-decoration: none;
+    display: block;
+  }
+
+  .menu a:hover {
+    background-color: #575757;
+  }
+
+  .menu.active {
+    display: flex;
+  }
+</style>
+
+<div class="navbar">
+  <h2>Dashboard</h2>
+  <span class="menu-toggle" onclick="toggleMenu()">☰</span>
+</div>
+
+<div class="menu" id="menu">
+  <a href="home.html">Home</a>
+  <a href="check-fined.html">Check Fined Students</a>
+  <a href="late-entries.html">Late Entries List</a>
+  <a href="logout.html">Logout</a>
+</div>
+
+<script>
+  function toggleMenu() {
+    const menu = document.getElementById("menu");
+    menu.classList.toggle("active");
+  }
+</script>
+    <div class="container">
+        <div id="login-page">
+            <h1>A.A.N.M.&V.V.R.S.R. POLYTECHNIC, GUDLAVALLERU</h1>
+            <h2>Student CampusLog Login</h2>
+            <div class="form-group"><label for="email">Email:</label><input type="email" id="email" required></div>
+            <div class="form-group"><label for="password">Password:</label><input type="password" id="password" required></div>
+            <button id="login-button">Login</button>
+            <p id="login-error" class="error-message"></p>
+        </div>
+
+        <div id="app-container" style="display: none;">
+             <div id="user-info"></div>
+             <button id="logout-button">Logout</button>
+        </div>
+        
+        <div id="admin-dashboard" class="dashboard">
+            <h2>Admin Dashboard</h2>
+            <h3>Financial Summary</h3>
+            <div id="admin-fine-summary">Loading summary...</div>
+            
+            <h3>Login History</h3>
+            <div id="admin-login-history" class="student-list-container">Loading login history...</div>
+            
+            <h3 style="margin-top: 30px;">Daily Late Students Report</h3>
+            <div class="form-group">
+                <label for="admin-report-date">Select Date:</label>
+                <input type="date" id="admin-report-date">
+            </div>
+            <button id="download-late-report-btn" class="action-button">Download Daily Report (Excel)</button>
+            <p id="admin-report-message" style="margin-top: 10px;"></p>
+
+            <h3 style="margin-top: 30px;">Monthly Late Students Summary Report</h3>
+            <div class="form-group">
+                <label for="admin-monthly-report-month">Select Month:</label>
+                <input type="month" id="admin-monthly-report-month">
+            </div>
+            <button id="download-monthly-report-btn" class="action-button">Download Monthly Summary (Excel)</button>
+            <p id="admin-monthly-report-message" style="margin-top: 10px;"></p>
+        </div>
+
+        <div id="supervisor-dashboard" class="dashboard">
+             <h2>Supervisor Dashboard</h2>
+            <h3>Mark Late Students</h3>
+            <div class="form-row">
+                <div class="form-group"><label for="filter-branch">Branch:</label>
+                    <select id="filter-branch">
+                        <option value="MECH">MECH</option><option value="EEE">EEE</option><option value="ECE">ECE</option><option value="AIML">AIML</option><option value="CIOT">CIOT</option><option value="CME">CME</option><option value="CIVIL">CIVIL</option>
+                    </select>
+                </div>
+                <div class="form-group"><label for="filter-year">Year:</label><select id="filter-year"><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label for="late-date">Date:</label><input type="date" id="late-date"></div>
+                <div class="form-group"><label for="late-session">Session:</label><select id="late-session"><option value="FN">Morning (FN)</option><option value="AN">Afternoon (AN)</option></select></div>
+            </div>
+            <div class="form-group"><label for="late-type">Late Type:</label><select id="late-type"><option value="Gate">Gate</option><option value="Canteen">Canteen</option></select></div>
+            <div class="form-group"><label for="quick-entry">Quick Entry (comma-separated last digits):</label><input type="text" id="quick-entry"></div>
+            <div class="form-group"><label>Select Students from List:</label><div id="student-list-checkbox" class="student-list-container"></div></div>
+            <button id="mark-late-button">Mark Selected Students as Late</button>
+            <p id="mark-late-message" style="text-align: center; margin-top: 15px;"></p>
+            <div id="fine-summary-container" style="display: none;"></div>
+            <hr>
+
+            <h3>Review & Remove Late Entries</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="review-date">Select Date:</label>
+                    <input type="date" id="review-date">
+                </div>
+                <div class="form-group">
+                    <label for="review-late-type">Late Type:</label>
+                    <select id="review-late-type">
+                        <option value="Gate">Gate</option>
+                        <option value="Canteen">Canteen</option>
+                    </select>
+                </div>
+            </div>
+            <button id="fetch-late-entries-btn">Fetch Entries</button>
+            <div id="review-results-container" style="margin-top: 15px;"></div>
+            <hr>
+            <h3>Check Fined Students by Month</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="history-branch-select">Select Branch:</label>
+                    <select id="history-branch-select">
+                        <option value="MECH">MECH</option><option value="EEE">EEE</option><option value="ECE">ECE</option><option value="AIML">AIML</option><option value="CIOT">CIOT</option><option value="CME">CME</option><option value="CIVIL">CIVIL</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="history-month-select">Select Month:</label>
+                    <input type="month" id="history-month-select">
+                </div>
+            </div>
+            <button id="check-history-btn">Check Fined Students</button>
+            <div id="history-results-display" style="margin-top: 15px;"></div>
+        </div>
+        
+        <div id="mech-dashboard" class="dashboard">
+            <h2>MECH Branch - Fine Status</h2>
+            <div class="form-group"><label for="mech-year-filter">Filter by Year:</label><select id="mech-year-filter"><option value="">All Years</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option></select></div>
+            <div id="mech-results"></div>
+            <div id="mech-impose-fine-container"></div> 
+        </div>
+        <div id="eee-dashboard" class="dashboard">
+            <h2>EEE Branch - Fine Status</h2>
+            <div class="form-group"><label for="eee-year-filter">Filter by Year:</label><select id="eee-year-filter"><option value="">All Years</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option></select></div>
+            <div id="eee-results"></div>
+            <div id="eee-impose-fine-container"></div> 
+        </div>
+        <div id="ece-dashboard" class="dashboard">
+            <h2>ECE Branch - Fine Status</h2>
+            <div class="form-group"><label for="ece-year-filter">Filter by Year:</label><select id="ece-year-filter"><option value="">All Years</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option></select></div>
+            <div id="ece-results"></div>
+            <div id="ece-impose-fine-container"></div> 
+        </div>
+        <div id="aiml-dashboard" class="dashboard">
+            <h2>AIML Branch - Fine Status</h2>
+            <div class="form-group"><label for="aiml-year-filter">Filter by Year:</label><select id="aiml-year-filter"><option value="">All Years</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option></select></div>
+            <div id="aiml-results"></div>
+            <div id="aiml-impose-fine-container"></div> 
+        </div>
+        <div id="ciot-dashboard" class="dashboard">
+            <h2>CIOT Branch - Fine Status</h2>
+            <div class="form-group"><label for="ciot-year-filter">Filter by Year:</label><select id="ciot-year-filter"><option value="">All Years</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option></select></div>
+            <div id="ciot-results"></div>
+            <div id="ciot-impose-fine-container"></div> 
+        </div>
+        <div id="cme-dashboard" class="dashboard">
+            <h2>CME Branch - Fine Status</h2>
+            <div class="form-group"><label for="cme-year-filter">Filter by Year:</label><select id="cme-year-filter"><option value="">All Years</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option></select></div>
+            <div id="cme-results"></div>
+            <div id="cme-impose-fine-container"></div> 
+        </div>
+        <div id="civil-dashboard" class="dashboard">
+            <h2>CIVIL Branch - Fine Status</h2>
+            <div class="form-group"><label for="civil-year-filter">Filter by Year:</label><select id="civil-year-filter"><option value="">All Years</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option></select></div>
+            <div id="civil-results"></div>
+            <div id="civil-impose-fine-container"></div> 
+        </div>
+
+        <div id="office-dashboard" class="dashboard">
+            <h2>Office Dashboard - Collect Fines</h2>
+            <div class="form-row">
+                 <div class="form-group"><label for="office-filter-branch">Branch:</label>
+                    <select id="office-filter-branch">
+                        <option value="MECH">MECH</option><option value="EEE">EEE</option><option value="ECE">ECE</option><option value="AIML">AIML</option><option value="CIOT">CIOT</option><option value="CME">CME</option><option value="CIVIL">CIVIL</option>
+                    </select>
+                </div>
+                <div class="form-group"><label for="office-filter-year">Year:</label><select id="office-filter-year"><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option></select></div>
+            </div>
+            <button id="office-fetch-fines-btn">Fetch Fines</button>
+            <div id="office-results"></div>
+        </div>
+
+        <div id="principal-dashboard" class="dashboard">
+            <h2>Principal's Dashboard</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="principal-filter-branch">Filter by Branch:</label>
+                    <select id="principal-filter-branch">
+                        <option value="">All Branches</option><option value="MECH">MECH</option><option value="EEE">EEE</option><option value="ECE">ECE</option><option value="AIML">AIML</option><option value="CIOT">CIOT</option><option value="CME">CME</option><option value="CIVIL">CIVIL</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="principal-filter-year">Filter by Year:</label>
+                    <select id="principal-filter-year">
+                        <option value="">All Years</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option>
+                    </select>
+                </div>
+            </div>
+            <div id="principal-results"></div>
+            <div id="principal-impose-fine-container"></div> 
+            
+            <h3 style="margin-top: 30px;">Monthly Late Students Summary Report</h3>
+            <div class="form-group">
+                <label for="principal-monthly-report-month">Select Month:</label>
+                <input type="month" id="principal-monthly-report-month">
+            </div>
+            <button id="principal-download-monthly-report-btn" class="action-button">Download Monthly Summary (Excel)</button>
+            <p id="principal-monthly-report-message" style="margin-top: 10px;"></p>
+        </div>
+    </div>
+
+    <footer class="main-footer w-full bg-gray-900 text-white text-center py-4 mt-10 shadow-md">
+        <p class="text-sm">
+          Design & Developed by <span class="font-semibold text-blue-400">K. LAKSHMANA RAO</span>
+        </p>
+        <p class="text-xs text-gray-400 mt-1">
+          Faculty, A.A.N.M. & V.V.R.S.R. Polytechnic, Gudlavalleru
+        </p>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // --- START: Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAKtktIEz57ydGg-hYWpBUp5ROi29vQgss",
+            authDomain: "faculty-student-tracker.firebaseapp.com",
+            projectId: "faculty-student-tracker",
+            storageBucket: "faculty-student-tracker.appspot.com",
+            messagingSenderId: "1038855285062",
+            appId: "1:1038855285062:web:894789ce3ce33950ecdd47",
+            measurementId: "G-8JQ90294MK"
+        };
+        // --- END: Firebase Configuration ---
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+         // --- START: ALL STUDENT DATA ---
+         const allStudents = {
+            "MECH": {
+                "1": ["25030-M-001", "25030-M-002", "25030-M-003", "25030-M-004", "25030-M-005", "25030-M-006", "25030-M-007", "25030-M-008", "25030-M-009", "25030-M-010", "25030-M-011", "25030-M-012", "25030-M-013", "25030-M-014", "25030-M-015", "25030-M-016", "25030-M-017", "25030-M-018", "25030-M-019", "25030-M-020", "25030-M-021", "25030-M-022", "25030-M-023", "25030-M-024", "25030-M-025", "25030-M-026", "25030-M-027", "25030-M-028", "25030-M-029", "25030-M-030", "25030-M-031", "25030-M-032", "25030-M-033", "25030-M-034", "25030-M-035", "25030-M-036", "25030-M-037", "25030-M-038", "25030-M-039", "25030-M-040", "25030-M-041", "25030-M-042", "25030-M-043", "25030-M-044", "25030-M-045", "25030-M-046", "25030-M-047", "25030-M-048", "25030-M-049", "25030-M-050", "25030-M-051", "25030-M-052", "25030-M-053", "25030-M-054", "25030-M-055", "25030-M-056", "25030-M-057", "25030-M-058", "25030-M-059", "25030-M-060", "25030-M-061", "25030-M-062", "25030-M-063", "25030-M-064", "25030-M-065", "25030-M-066", "25030-M-067", "25030-M-068", "25030-M-069", "25030-M-070", "25030-M-071", "25030-M-072", "25030-M-073", "25030-M-074", "25030-M-075", "25030-M-076", "25030-M-077", "25030-M-078", "25030-M-079", "25030-M-080", "25030-M-081", "25030-M-082", "25030-M-083", "25030-M-084", "25030-M-085", "25030-M-086", "25030-M-087", "25030-M-088", "25030-M-089", "25030-M-090", "25030-M-091", "25030-M-092", "25030-M-093", "25030-M-094", "25030-M-095", "25030-M-096", "25030-M-097", "25030-M-098", "25030-M-099", "25030-M-100", "25030-M-101", "25030-M-102", "25030-M-103", "25030-M-104", "25030-M-105", "25030-M-106", "25030-M-107", "25030-M-108", "25030-M-109", "25030-M-110", "25030-M-111", "25030-M-112", "25030-M-113", "25030-M-114", "25030-M-115", "25030-M-116", "25030-M-117", "25030-M-118", "25030-M-119", "25030-M-120", "25030-M-121", "25030-M-122", "25030-M-123", "25030-M-124", "25030-M-125", "25030-M-126", "25030-M-127", "25030-M-128", "25030-M-129", "25030-M-130", "25030-M-131", "25030-M-132", "25030-M-133", "25030-M-134", "25030-M-135", "25030-M-136", "25030-M-137", "25030-M-138", "25030-M-139", "25030-M-140", "25030-M-141", "25030-M-142", "25030-M-143", "25030-M-144", "25030-M-145", "25030-M-146", "25030-M-147", "25030-M-148", "25030-M-149", "25030-M-150", "25030-M-151", "25030-M-152", "25030-M-153", "25030-M-154", "25030-M-155", "25030-M-156", "25030-M-157", "25030-M-158", "25030-M-159", "25030-M-160", "25030-M-161", "25030-M-162", "25030-M-163", "25030-M-164", "25030-M-165", "25030-M-166", "25030-M-167", "25030-M-168", "25030-M-169", "25030-M-170", "25030-M-171", "25030-M-172", "25030-M-173", "25030-M-174", "25030-M-175", "25030-M-176", "25030-M-177", "25030-M-178", "25030-M-179", "25030-M-180", "25030-M-181", "25030-M-182", "25030-M-183", "25030-M-184", "25030-M-185", "25030-M-186", "25030-M-187", "25030-M-188", "25030-M-189", "25030-M-190", "25030-M-191", "25030-M-192", "25030-M-193", "25030-M-194", "25030-M-195", "25030-M-196", "25030-M-197", "25030-M-198"],
+                "2": ["24030-M-001", "24030-M-002", "24030-M-003", "24030-M-004", "24030-M-005", "24030-M-006", "24030-M-007", "24030-M-008", "24030-M-009", "24030-M-010", "24030-M-011", "24030-M-012", "24030-M-013", "24030-M-014", "24030-M-015", "24030-M-016", "24030-M-017", "24030-M-018", "24030-M-020", "24030-M-021", "24030-M-022", "24030-M-023", "24030-M-024", "24030-M-025", "24030-M-026", "24030-M-027", "24030-M-028", "24030-M-029", "24030-M-030", "24030-M-031", "24030-M-032", "24030-M-034", "24030-M-035", "24030-M-036", "24030-M-037", "24030-M-038", "24030-M-039", "24030-M-040", "24030-M-042", "24030-M-043", "24030-M-044", "24030-M-045", "24030-M-046", "24030-M-047", "24030-M-048", "24030-M-049", "24030-M-050", "24030-M-051", "24030-M-052", "24030-M-053", "24030-M-054", "24030-M-055", "24030-M-056", "24030-M-057", "24030-M-058", "24030-M-059", "24030-M-060", "24030-M-061", "24030-M-062", "24030-M-063", "24030-M-064", "24030-M-066", "24030-M-067", "24030-M-068", "24030-M-069", "24030-M-070", "24030-M-071", "24030-M-072", "24030-M-073", "24030-M-074", "24030-M-075", "24030-M-076", "24030-M-077", "24030-M-078", "24030-M-079", "24030-M-080", "24030-M-081", "24030-M-082", "24030-M-083", "24030-M-084", "24030-M-085", "24030-M-086", "24030-M-087", "24030-M-088", "24030-M-089", "24030-M-090", "24030-M-091", "24030-M-092", "24030-M-093", "24030-M-094", "24030-M-095", "24030-M-096", "24030-M-097", "24030-M-098", "24030-M-099", "24030-M-100", "24030-M-101", "24030-M-102", "24030-M-103", "24030-M-104", "24030-M-105", "24030-M-106", "24030-M-107", "24030-M-108", "24030-M-109", "24030-M-110", "24030-M-111", "24030-M-112", "24030-M-113", "24030-M-114", "24030-M-115", "24030-M-116", "24030-M-117", "24030-M-118", "24030-M-119", "24030-M-120", "24030-M-121", "24030-M-122", "24030-M-123", "24030-M-124", "24030-M-126", "24030-M-127", "24030-M-128", "24030-M-129", "24030-M-130", "24030-M-131", "24030-M-132", "24030-M-133", "24030-M-134", "24030-M-135", "24030-M-137", "24030-M-138", "24030-M-139", "24030-M-140", "24030-M-141", "24030-M-142", "24030-M-143", "24030-M-144", "24030-M-145", "24030-M-146", "24030-M-147", "24030-M-148", "24030-M-149", "24030-M-150", "24030-M-151", "24030-M-152", "24030-M-153", "24030-M-154", "24030-M-155", "24030-M-156", "24030-M-157", "24030-M-158", "24030-M-159", "24030-M-160", "24030-M-161", "24030-M-162", "24030-M-163", "24030-M-164", "24030-M-165", "24030-M-166", "24030-M-167", "24030-M-168", "24030-M-169", "24030-M-170", "24030-M-171", "24030-M-172", "24030-M-173", "24030-M-174", "24030-M-175", "24030-M-176", "24030-M-177", "24030-M-178", "24030-M-179", "24030-M-180", "24030-M-181", "24030-M-182", "24030-M-183", "24030-M-184", "24030-M-186", "24030-M-187", "24030-M-188", "24030-M-189", "24030-M-191", "24030-M-192", "24030-M-193", "24030-M-194", "24030-M-195", "24030-M-196", "24030-M-197", "23030-M-019", "23030-M-034"],
+                "3": ['23030-M-002', '23030-M-003', '23030-M-005', '23030-M-007', '23030-M-008', '23030-M-010', '23030-M-011', '23030-M-012', '23030-M-013', '23030-M-014', '23030-M-015', '23030-M-016', '23030-M-017', '23030-M-018', '23030-M-020', '23030-M-021', '23030-M-022', '23030-M-023', '23030-M-024', '23030-M-025', '23030-M-026', '23030-M-028', '23030-M-029', '23030-M-030', '23030-M-031', '23030-M-033', '23030-M-035', '23030-M-036', '23030-M-037', '23030-M-038', '23030-M-039', '23030-M-040', '23030-M-041', '23030-M-042', '23030-M-043', '23030-M-044', '23030-M-045', '23030-M-046', '23030-M-047', '23030-M-048', '23030-M-050', '23030-M-051', '23030-M-052', '23030-M-053', '23030-M-054', '23030-M-055', '23030-M-056', '23030-M-057', '23030-M-058', '23030-M-059', '23030-M-060', '23030-M-062', '23030-M-063', '23030-M-064', '23030-M-065', '23030-M-067', '23030-M-068', '23030-M-069', '23030-M-070', '23030-M-072', '23030-M-073', '23030-M-074', '23030-M-075', '23030-M-076', '23030-M-077', '23030-M-078', '23030-M-079', '23030-M-080', '23030-M-081', '23030-M-082', '23030-M-083', '23030-M-084', '23030-M-085', '23030-M-086', '23030-M-088', '23030-M-089', '23030-M-090', '23030-M-091', '23030-M-092', '23030-M-093', '23030-M-094', '23030-M-095', '23030-M-096', '23030-M-097', '23030-M-098', '23030-M-099', '23030-M-100', '23030-M-102', '23030-M-103', '23030-M-104', '23030-M-105', '23030-M-106', '23030-M-107', '23030-M-108', '23030-M-109', '23030-M-110', '23030-M-111', '23030-M-112', '23030-M-113', '23030-M-114', '23030-M-115', '23030-M-117', '23030-M-119', '23030-M-120', '23030-M-121', '23030-M-122', '23030-M-123', '23030-M-124', '23030-M-125', '23030-M-126', '23030-M-127', '23030-M-128', '23030-M-129', '23030-M-131', '22030-M-096', '23030-M-132', '23030-M-133', '23030-M-134', '23030-M-135', '23030-M-136', '23030-M-137', '23030-M-138', '23030-M-139', '23030-M-140', '23030-M-141', '23030-M-142', '23030-M-143', '23030-M-144', '23030-M-145', '23030-M-146', '23030-M-147', '23030-M-148', '23030-M-149', '23030-M-151', '23030-M-152', '23030-M-153', '25030-M-154', '25030-M-155', '25030-M-156', '25030-M-157', '25030-M-158', '25030-M-159', '25030-M-160', '25030-M-161', '25030-M-163', '25030-M-164', '25030-M-165', '25030-M-166', '25030-M-167', '25030-M-168', '25030-M-169', '25030-M-170', '25030-M-171', '25030-M-172', '25030-M-173', '25030-M-174', '25030-M-176', '25030-M-177', '25030-M-179', '25030-M-180', '25030-M-181', '25030-M-182', '25030-M-183', '25030-M-184', '25030-M-185', '25030-M-186', '25030-M-188', '25030-M-189', '25030-M-190', '25030-M-191', '25030-M-192', '25030-M-193', '25030-M-194', '25030-M-195', '25030-M-196']
+            },
+            "EEE": {
+                "1": ["25030-EE-001", "25030-EE-002", "25030-EE-003", "25030-EE-004", "25030-EE-005", "25030-EE-006", "25030-EE-007", "25030-EE-008", "25030-EE-009", "25030-EE-010", "25030-EE-011", "25030-EE-012", "25030-EE-013", "25030-EE-014", "25030-EE-015", "25030-EE-016", "25030-EE-017", "25030-EE-018", "25030-EE-019", "25030-EE-020", "25030-EE-021", "25030-EE-022", "25030-EE-023", "25030-EE-024", "25030-EE-025", "25030-EE-026", "25030-EE-027", "25030-EE-028", "25030-EE-029", "25030-EE-030", "25030-EE-031", "25030-EE-032", "25030-EE-033", "25030-EE-034", "25030-EE-035", "25030-EE-036", "25030-EE-037", "25030-EE-038", "25030-EE-039", "25030-EE-040", "25030-EE-041", "25030-EE-042", "25030-EE-043", "25030-EE-044", "25030-EE-045", "25030-EE-046", "25030-EE-047", "25030-EE-048", "25030-EE-049", "25030-EE-050", "25030-EE-051", "25030-EE-052", "25030-EE-053", "25030-EE-054", "25030-EE-055", "25030-EE-056", "25030-EE-057", "25030-EE-058", "25030-EE-059", "25030-EE-060", "25030-EE-061", "25030-EE-062", "25030-EE-063", "25030-EE-064", "25030-EE-065", "25030-EE-066", "25030-EE-067", "25030-EE-068", "25030-EE-069", "25030-EE-070", "25030-EE-071", "25030-EE-072", "25030-EE-073", "25030-EE-074", "25030-EE-075", "25030-EE-076", "25030-EE-077", "25030-EE-078", "25030-EE-079", "25030-EE-080", "25030-EE-081", "25030-EE-082", "25030-EE-083", "25030-EE-084", "25030-EE-085", "25030-EE-086", "25030-EE-087", "25030-EE-088", "25030-EE-089", "25030-EE-090", "25030-EE-091", "25030-EE-092", "25030-EE-093", "25030-EE-094", "25030-EE-095", "25030-EE-096", "25030-EE-097", "25030-EE-098", "25030-EE-099", "25030-EE-100", "25030-EE-101", "25030-EE-102", "25030-EE-103", "25030-EE-104", "25030-EE-105", "25030-EE-106", "25030-EE-107", "25030-EE-108", "25030-EE-109", "25030-EE-110", "25030-EE-111", "25030-EE-112", "25030-EE-113", "25030-EE-114", "25030-EE-115", "25030-EE-116", "25030-EE-117", "25030-EE-118", "25030-EE-119", "25030-EE-120", "25030-EE-121", "25030-EE-122", "25030-EE-123", "25030-EE-124", "25030-EE-125", "25030-EE-126", "25030-EE-127", "25030-EE-128", "25030-EE-129", "25030-EE-130", "25030-EE-131", "25030-EE-132", "25030-EE-133", "25030-EE-134", "25030-EE-135", "25030-EE-136", "25030-EE-137", "25030-EE-138", "25030-EE-139", "25030-EE-140", "25030-EE-141", "25030-EE-142", "25030-EE-143", "25030-EE-144", "25030-EE-145", "25030-EE-146", "25030-EE-147", "25030-EE-148", "25030-EE-149", "25030-EE-150", "25030-EE-151", "25030-EE-152", "25030-EE-153", "25030-EE-154", "25030-EE-155", "25030-EE-156", "25030-EE-157", "25030-EE-158", "25030-EE-159", "25030-EE-160", "25030-EE-161", "25030-EE-162", "25030-EE-163", "25030-EE-164", "25030-EE-165", "25030-EE-166", "25030-EE-167", "25030-EE-168", "25030-EE-169", "25030-EE-170", "25030-EE-171", "25030-EE-172", "25030-EE-173", "25030-EE-174", "25030-EE-175", "25030-EE-176", "25030-EE-177", "25030-EE-178", "25030-EE-179", "25030-EE-180", "25030-EE-181", "25030-EE-182", "25030-EE-183", "25030-EE-184", "25030-EE-185", "25030-EE-186", "25030-EE-187", "25030-EE-188", "25030-EE-189", "25030-EE-190", "25030-EE-191", "25030-EE-192", "25030-EE-193", "25030-EE-194", "25030-EE-195", "25030-EE-196", "25030-EE-197", "25030-EE-198", "25030-EE-199", "25030-EE-200", "25030-EE-201", "25030-EE-202", "25030-EE-203", "25030-EE-204", "25030-EE-205", "25030-EE-206", "25030-EE-207", "25030-EE-208", "25030-EE-209", "25030-EE-210", "25030-EE-211", "25030-EE-212", "25030-EE-213", "25030-EE-214", "25030-EE-215", "25030-EE-216", "25030-EE-217", "25030-EE-218", "25030-EE-219", "25030-EE-220", "25030-EE-221", "25030-EE-222", "25030-EE-223", "25030-EE-224", "25030-EE-225", "25030-EE-226", "25030-EE-227", "25030-EE-228", "25030-EE-229", "25030-EE-230", "25030-EE-231", "25030-EE-232", "25030-EE-233", "25030-EE-234", "25030-EE-235", "25030-EE-236", "25030-EE-237", "25030-EE-238", "25030-EE-239", "25030-EE-240", "25030-EE-241", "25030-EE-242", "25030-EE-243", "25030-EE-244", "25030-EE-245", "25030-EE-246", "25030-EE-247", "25030-EE-248", "25030-EE-249", "25030-EE-250", "25030-EE-251", "25030-EE-252", "25030-EE-253", "25030-EE-254", "25030-EE-255", "25030-EE-256", "25030-EE-257", "25030-EE-258", "25030-EE-259", "25030-EE-260", "25030-EE-261", "25030-EE-262", "25030-EE-263", "25030-EE-264","24030-EE-157","24030-EE-242"],
+                "2": ["24030-EE-001", "24030-EE-002", "24030-EE-003", "24030-EE-004", "24030-EE-005", "24030-EE-006", "24030-EE-007", "24030-EE-008", "24030-EE-009", "24030-EE-010", "24030-EE-012", "24030-EE-013", "24030-EE-014", "24030-EE-015", "24030-EE-016", "24030-EE-017", "24030-EE-018", "24030-EE-019", "24030-EE-020", "24030-EE-021", "24030-EE-022", "24030-EE-023", "24030-EE-024", "24030-EE-025", "24030-EE-026", "24030-EE-027", "24030-EE-028", "24030-EE-029", "24030-EE-030", "24030-EE-031", "24030-EE-032", "24030-EE-033", "24030-EE-034", "24030-EE-035", "24030-EE-037", "24030-EE-038", "24030-EE-039", "24030-EE-040", "24030-EE-041", "24030-EE-042", "24030-EE-044", "24030-EE-045", "24030-EE-046", "24030-EE-047", "24030-EE-050", "24030-EE-051", "24030-EE-052", "24030-EE-053", "24030-EE-054", "24030-EE-055", "24030-EE-057", "24030-EE-058", "24030-EE-059", "24030-EE-060", "24030-EE-061", "24030-EE-062", "24030-EE-063", "24030-EE-064", "24030-EE-065", "24030-EE-066", "24030-EE-067", "24030-EE-068", "24030-EE-069", "24030-EE-070", "24030-EE-071", "24030-EE-072", "24030-EE-073", "24030-EE-074", "24030-EE-075", "24030-EE-076", "24030-EE-077", "24030-EE-078", "24030-EE-079", "24030-EE-080", "24030-EE-081", "24030-EE-082", "24030-EE-083", "24030-EE-084", "24030-EE-085", "24030-EE-086", "24030-EE-087", "24030-EE-088", "24030-EE-089", "24030-EE-090", "24030-EE-091", "24030-EE-092", "24030-EE-093", "24030-EE-094", "24030-EE-095", "24030-EE-096", "24030-EE-097", "24030-EE-098", "24030-EE-099", "24030-EE-100", "24030-EE-101", "24030-EE-102", "24030-EE-103", "24030-EE-104", "24030-EE-105", "24030-EE-106", "24030-EE-107", "24030-EE-108", "24030-EE-109", "24030-EE-110", "24030-EE-111", "24030-EE-112", "24030-EE-113", "24030-EE-114", "24030-EE-115", "24030-EE-116", "24030-EE-117", "24030-EE-118", "24030-EE-119", "24030-EE-120", "24030-EE-121", "24030-EE-122", "24030-EE-123", "24030-EE-124", "24030-EE-125", "24030-EE-126", "24030-EE-127", "24030-EE-128", "24030-EE-130", "24030-EE-131", "24030-EE-132", "24030-EE-133", "24030-EE-134", "24030-EE-135", "24030-EE-136", "24030-EE-137", "24030-EE-138", "24030-EE-139", "24030-EE-140", "24030-EE-141", "24030-EE-142", "24030-EE-143", "24030-EE-144", "24030-EE-145", "24030-EE-146", "24030-EE-147", "24030-EE-148", "24030-EE-149", "24030-EE-150", "24030-EE-151", "24030-EE-152", "24030-EE-153", "24030-EE-155", "24030-EE-156", "24030-EE-158", "24030-EE-159", "24030-EE-160", "24030-EE-161", "24030-EE-162", "24030-EE-164", "24030-EE-165", "24030-EE-166", "24030-EE-167", "24030-EE-169", "24030-EE-170", "24030-EE-171", "24030-EE-172", "24030-EE-173", "24030-EE-174", "24030-EE-175", "24030-EE-176", "24030-EE-177", "24030-EE-178", "24030-EE-180", "24030-EE-181", "24030-EE-182", "24030-EE-183", "24030-EE-184", "24030-EE-186", "24030-EE-187", "24030-EE-188", "24030-EE-189", "24030-EE-190", "24030-EE-191", "24030-EE-192", "24030-EE-193", "24030-EE-194", "24030-EE-195", "24030-EE-197", "24030-EE-198", "24030-EE-199", "24030-EE-200", "24030-EE-201", "24030-EE-202", "24030-EE-203", "24030-EE-204", "24030-EE-205", "24030-EE-206", "24030-EE-207", "24030-EE-208", "24030-EE-209", "24030-EE-210", "24030-EE-211", "24030-EE-212", "24030-EE-213", "24030-EE-214", "24030-EE-215", "24030-EE-216", "24030-EE-217", "24030-EE-218", "24030-EE-219", "24030-EE-220", "24030-EE-221", "24030-EE-222", "24030-EE-223", "24030-EE-224", "24030-EE-225", "24030-EE-226", "24030-EE-227", "24030-EE-228", "24030-EE-229", "24030-EE-230", "24030-EE-231", "24030-EE-232", "24030-EE-233", "24030-EE-234", "24030-EE-235", "24030-EE-236", "24030-EE-237", "24030-EE-238", "24030-EE-239", "24030-EE-240", "24030-EE-241", "24030-EE-243", "24030-EE-244", "24030-EE-245", "24030-EE-246", "24030-EE-247", "24030-EE-248", "24030-EE-249", "24030-EE-250", "24030-EE-251", "24030-EE-252", "24030-EE-253", "24030-EE-254", "24030-EE-255", "24030-EE-256", "24030-EE-257", "24030-EE-258", "24030-EE-259", "24030-EE-260", "24030-EE-261", "24030-EE-262", "24030-EE-263", "23030-EE-054", "23030-EE-254"],
+                "3": ["23030-EE-001", "23030-EE-002", "23030-EE-003", "23030-EE-004", "23030-EE-005", "23030-EE-006", "23030-EE-007", "23030-EE-008", "23030-EE-009", "23030-EE-010", "23030-EE-011", "23030-EE-012", "23030-EE-013", "23030-EE-014", "23030-EE-015", "23030-EE-016", "23030-EE-017", "23030-EE-018", "23030-EE-019", "23030-EE-020", "23030-EE-021", "23030-EE-022", "23030-EE-023", "23030-EE-024", "23030-EE-025", "23030-EE-026", "23030-EE-027", "23030-EE-028", "23030-EE-029", "23030-EE-030", "23030-EE-031", "23030-EE-032", "23030-EE-033", "23030-EE-034", "23030-EE-035", "23030-EE-036", "23030-EE-037", "23030-EE-038", "23030-EE-039", "23030-EE-040", "23030-EE-041", "23030-EE-042", "23030-EE-043", "23030-EE-045", "23030-EE-047", "23030-EE-048", "23030-EE-049", "23030-EE-050", "23030-EE-051", "23030-EE-053", "23030-EE-055", "23030-EE-056", "23030-EE-057", "23030-EE-058", "23030-EE-059", "23030-EE-060", "23030-EE-061", "23030-EE-062", "23030-EE-063", "23030-EE-064", "23030-EE-065", "23030-EE-066", "22030-EE-067","23030-EE-067", "23030-EE-068", "23030-EE-069", "23030-EE-071", "23030-EE-072", "23030-EE-073", "23030-EE-074", "23030-EE-075", "23030-EE-076", "23030-EE-077", "23030-EE-078", "23030-EE-079", "23030-EE-080", "23030-EE-081", "23030-EE-082", "23030-EE-083", "23030-EE-084", "23030-EE-085", "23030-EE-086", "23030-EE-087", "23030-EE-088", "23030-EE-089", "23030-EE-090", "23030-EE-091", "23030-EE-092", "23030-EE-093", "23030-EE-094", "23030-EE-095", "23030-EE-096", "23030-EE-097", "23030-EE-098", "23030-EE-099", "23030-EE-100", "23030-EE-101", "23030-EE-102", "23030-EE-103", "23030-EE-104", "23030-EE-106", "23030-EE-107", "23030-EE-108", "23030-EE-109", "23030-EE-110", "23030-EE-111", "23030-EE-112", "23030-EE-113", "23030-EE-114", "23030-EE-115", "23030-EE-116", "23030-EE-118", "23030-EE-119", "23030-EE-120", "23030-EE-121", "23030-EE-122", "23030-EE-123", "23030-EE-125", "23030-EE-126", "23030-EE-127", "23030-EE-129", "23030-EE-130", "23030-EE-131", "23030-EE-132", "23030-EE-133", "23030-EE-134", "23030-EE-135", "23030-EE-136", "23030-EE-137", "23030-EE-138", "23030-EE-139", "23030-EE-140", "23030-EE-141", "23030-EE-142", "23030-EE-143", "23030-EE-144", "23030-EE-145", "23030-EE-146", "23030-EE-147", "23030-EE-148", "23030-EE-149", "23030-EE-150", "23030-EE-151", "23030-EE-152", "23030-EE-153", "23030-EE-154", "23030-EE-155", "23030-EE-156", "23030-EE-157", "23030-EE-158", "23030-EE-159", "23030-EE-160", "23030-EE-161", "23030-EE-162", "23030-EE-163", "23030-EE-164", "23030-EE-165", "23030-EE-166", "23030-EE-167", "23030-EE-168", "23030-EE-169", "23030-EE-170", "23030-EE-171", "23030-EE-172", "23030-EE-173", "23030-EE-174", "23030-EE-176", "23030-EE-177", "23030-EE-178", "23030-EE-179", "23030-EE-180", "23030-EE-181", "23030-EE-182", "23030-EE-183", "23030-EE-184", "23030-EE-185", "23030-EE-186", "23030-EE-187", "23030-EE-188", "23030-EE-189", "23030-EE-190", "23030-EE-191", "23030-EE-192", "23030-EE-194", "23030-EE-195", "23030-EE-196", "23030-EE-197", "23030-EE-198", "23030-EE-199", "23030-EE-200", "23030-EE-201", "23030-EE-202", "23030-EE-203", "23030-EE-205", "23030-EE-206", "23030-EE-207", "23030-EE-208", "23030-EE-209", "23030-EE-210", "23030-EE-211", "23030-EE-212", "23030-EE-213", "23030-EE-214", "23030-EE-215", "23030-EE-216", "23030-EE-217", "23030-EE-218", "23030-EE-219", "23030-EE-221", "23030-EE-222", "23030-EE-224", "23030-EE-225", "23030-EE-226", "23030-EE-227", "23030-EE-228", "23030-EE-229", "23030-EE-230", "23030-EE-231", "23030-EE-232", "23030-EE-233", "23030-EE-234", "23030-EE-235", "23030-EE-236", "23030-EE-237", "23030-EE-238", "23030-EE-239", "23030-EE-240", "23030-EE-241", "23030-EE-242", "23030-EE-243", "23030-EE-245", "23030-EE-246", "23030-EE-247", "23030-EE-248", "23030-EE-249", "23030-EE-250", "23030-EE-251", "23030-EE-252", "23030-EE-253", "23030-EE-255", "23030-EE-256", "23030-EE-258", "23030-EE-259", "23030-EE-260", "23030-EE-261", "23030-EE-262", "23030-EE-263", "23030-EE-264"]
+            },
+            "ECE": {
+                "1": ["25030-EC-001", "25030-EC-002", "25030-EC-003", "25030-EC-004", "25030-EC-005", "25030-EC-006", "25030-EC-007", "25030-EC-008", "25030-EC-009", "25030-EC-010", "25030-EC-011", "25030-EC-012", "25030-EC-013", "25030-EC-014", "25030-EC-015", "25030-EC-016", "25030-EC-017", "25030-EC-018", "25030-EC-019", "25030-EC-020", "25030-EC-021", "25030-EC-022", "25030-EC-023", "25030-EC-024", "25030-EC-025", "25030-EC-026", "25030-EC-027", "25030-EC-028", "25030-EC-029", "25030-EC-030", "25030-EC-031", "25030-EC-032", "25030-EC-033", "25030-EC-034", "25030-EC-035", "25030-EC-036", "25030-EC-037", "25030-EC-038", "25030-EC-039", "25030-EC-040", "25030-EC-041", "25030-EC-042", "25030-EC-043", "25030-EC-044", "25030-EC-045", "25030-EC-046", "25030-EC-047", "25030-EC-048", "25030-EC-049", "25030-EC-050", "25030-EC-051", "25030-EC-052", "25030-EC-053", "25030-EC-054", "25030-EC-055", "25030-EC-056", "25030-EC-057", "25030-EC-058", "25030-EC-059", "25030-EC-060", "25030-EC-061", "25030-EC-062", "25030-EC-063", "25030-EC-064", "25030-EC-065", "25030-EC-066", "25030-EC-067", "25030-EC-068", "25030-EC-069", "25030-EC-070", "25030-EC-071", "25030-EC-072", "25030-EC-073", "25030-EC-074", "25030-EC-075", "25030-EC-076", "25030-EC-077", "25030-EC-078", "25030-EC-079", "25030-EC-080", "25030-EC-081", "25030-EC-082", "25030-EC-083", "25030-EC-084", "25030-EC-085", "25030-EC-086", "25030-EC-087", "25030-EC-088", "25030-EC-089", "25030-EC-090", "25030-EC-091", "25030-EC-092", "25030-EC-093", "25030-EC-094", "25030-EC-095", "25030-EC-096", "25030-EC-097", "25030-EC-098", "25030-EC-099", "25030-EC-100", "25030-EC-101", "25030-EC-102", "25030-EC-103", "25030-EC-104", "25030-EC-105", "25030-EC-106", "25030-EC-107", "25030-EC-108", "25030-EC-109", "25030-EC-110", "25030-EC-111", "25030-EC-112", "25030-EC-113", "25030-EC-114", "25030-EC-115", "25030-EC-116", "25030-EC-117", "25030-EC-118", "25030-EC-119", "25030-EC-120", "25030-EC-121", "25030-EC-122", "25030-EC-123", "25030-EC-124", "25030-EC-125", "25030-EC-126", "25030-EC-127", "25030-EC-128", "25030-EC-129", "25030-EC-130", "25030-EC-131", "25030-EC-132", "25030-EC-133", "25030-EC-134", "25030-EC-135", "25030-EC-136", "25030-EC-137", "25030-EC-138", "25030-EC-139", "25030-EC-140", "25030-EC-141", "25030-EC-142", "25030-EC-143", "25030-EC-144", "25030-EC-145", "25030-EC-146", "25030-EC-147", "25030-EC-148", "25030-EC-149", "25030-EC-150", "25030-EC-151", "25030-EC-152", "25030-EC-153", "25030-EC-154", "25030-EC-155", "25030-EC-156", "25030-EC-157", "25030-EC-158", "25030-EC-159", "25030-EC-160", "25030-EC-161", "25030-EC-162", "25030-EC-163", "25030-EC-164", "25030-EC-165", "25030-EC-166", "25030-EC-167", "25030-EC-168", "25030-EC-169", "25030-EC-170", "25030-EC-171", "25030-EC-172", "25030-EC-173", "25030-EC-174", "25030-EC-175", "25030-EC-176", "25030-EC-177", "25030-EC-178", "25030-EC-179", "25030-EC-180", "25030-EC-181", "25030-EC-182", "25030-EC-183", "25030-EC-184", "25030-EC-185", "25030-EC-186", "25030-EC-187", "25030-EC-188", "25030-EC-189", "25030-EC-190", "25030-EC-191", "25030-EC-192", "25030-EC-193", "25030-EC-194", "25030-EC-195", "25030-EC-196", "25030-EC-197", "25030-EC-198", "25030-EC-199", "25030-EC-200", "25030-EC-201", "25030-EC-202", "25030-EC-203", "25030-EC-204", "25030-EC-205", "25030-EC-206", "25030-EC-207", "25030-EC-208", "25030-EC-209", "25030-EC-210", "25030-EC-211", "25030-EC-212", "25030-EC-213", "25030-EC-214", "25030-EC-215", "25030-EC-216", "25030-EC-217", "25030-EC-218", "25030-EC-219", "25030-EC-220", "25030-EC-221", "25030-EC-222", "25030-EC-223", "25030-EC-224", "25030-EC-225", "25030-EC-226", "25030-EC-227", "25030-EC-228", "25030-EC-229", "25030-EC-230", "25030-EC-231", "25030-EC-232", "25030-EC-233", "25030-EC-234", "25030-EC-235", "25030-EC-236", "25030-EC-237", "25030-EC-238", "25030-EC-239", "25030-EC-240", "25030-EC-241", "25030-EC-242", "25030-EC-243", "25030-EC-244", "25030-EC-245", "25030-EC-246", "25030-EC-247", "25030-EC-248", "25030-EC-249", "25030-EC-250", "25030-EC-251", "25030-EC-252", "25030-EC-253", "25030-EC-254", "25030-EC-255", "25030-EC-256", "25030-EC-257", "25030-EC-258", "25030-EC-259", "25030-EC-260", "25030-EC-261", "25030-EC-262", "25030-EC-263", "25030-EC-264"],
+                "2": ["24030-EC-001", "24030-EC-002", "24030-EC-003", "24030-EC-004", "24030-EC-005", "24030-EC-006", "24030-EC-007", "24030-EC-008", "24030-EC-009", "24030-EC-010", "24030-EC-011", "24030-EC-012", "24030-EC-013", "24030-EC-014", "24030-EC-015", "24030-EC-016", "24030-EC-017", "24030-EC-018", "24030-EC-019", "24030-EC-020", "24030-EC-021", "24030-EC-022", "24030-EC-023", "24030-EC-024", "24030-EC-025", "24030-EC-026", "24030-EC-027", "24030-EC-028", "24030-EC-029", "24030-EC-030", "24030-EC-031", "24030-EC-032", "24030-EC-033", "24030-EC-034", "24030-EC-035", "24030-EC-036", "24030-EC-037", "24030-EC-038", "24030-EC-039", "24030-EC-040", "24030-EC-041", "24030-EC-043", "24030-EC-044", "24030-EC-045", "24030-EC-046", "24030-EC-047", "24030-EC-048", "24030-EC-049", "24030-EC-051", "24030-EC-052", "24030-EC-053", "24030-EC-054", "24030-EC-055", "24030-EC-056", "24030-EC-057", "24030-EC-058", "24030-EC-059", "24030-EC-060", "24030-EC-061", "24030-EC-062", "24030-EC-063", "24030-EC-064", "24030-EC-065", "24030-EC-066", "24030-EC-067", "24030-EC-068", "24030-EC-069", "24030-EC-070", "24030-EC-071", "24030-EC-072", "24030-EC-073", "24030-EC-074", "24030-EC-075", "24030-EC-076", "24030-EC-077", "24030-EC-078", "24030-EC-079", "24030-EC-080", "24030-EC-081", "24030-EC-082", "24030-EC-083", "24030-EC-084", "24030-EC-085", "24030-EC-086", "24030-EC-087", "24030-EC-088", "24030-EC-089", "24030-EC-090", "24030-EC-091", "24030-EC-092", "24030-EC-093", "24030-EC-094", "24030-EC-095", "24030-EC-096", "24030-EC-098", "24030-EC-099", "24030-EC-100", "24030-EC-101", "24030-EC-102", "24030-EC-103", "24030-EC-104", "24030-EC-105", "24030-EC-106", "24030-EC-107", "24030-EC-108", "24030-EC-109", "24030-EC-110", "24030-EC-111", "24030-EC-112", "24030-EC-113", "24030-EC-114", "24030-EC-115", "24030-EC-116", "24030-EC-117", "24030-EC-118", "24030-EC-119", "24030-EC-120", "24030-EC-121", "24030-EC-122", "24030-EC-123", "24030-EC-124", "24030-EC-125", "24030-EC-126", "24030-EC-127", "24030-EC-128", "24030-EC-129", "24030-EC-130", "24030-EC-131", "24030-EC-132", "24030-EC-133", "24030-EC-134", "24030-EC-135", "24030-EC-136", "24030-EC-137", "24030-EC-138", "24030-EC-139", "24030-EC-141", "24030-EC-142", "24030-EC-143", "24030-EC-144", "24030-EC-145", "24030-EC-146", "24030-EC-147", "24030-EC-148", "24030-EC-149", "24030-EC-150", "24030-EC-151", "24030-EC-152", "24030-EC-153", "24030-EC-154", "24030-EC-155", "24030-EC-156", "24030-EC-157", "24030-EC-158", "24030-EC-159", "24030-EC-160", "24030-EC-161", "24030-EC-162", "24030-EC-163", "24030-EC-164", "24030-EC-165", "24030-EC-166", "24030-EC-167", "24030-EC-168", "24030-EC-169", "24030-EC-170", "24030-EC-171", "24030-EC-172", "24030-EC-173", "24030-EC-174", "24030-EC-175", "24030-EC-176", "24030-EC-177", "24030-EC-178", "24030-EC-179", "24030-EC-180", "24030-EC-181", "24030-EC-182", "24030-EC-183", "24030-EC-184", "24030-EC-185", "24030-EC-186", "24030-EC-187", "24030-EC-188", "24030-EC-189", "24030-EC-190", "24030-EC-191", "24030-EC-192", "24030-EC-193", "24030-EC-194", "24030-EC-195", "24030-EC-196", "24030-EC-197", "24030-EC-198", "24030-EC-199", "24030-EC-200", "24030-EC-201", "24030-EC-202", "24030-EC-203", "24030-EC-204", "24030-EC-205", "24030-EC-206", "24030-EC-207", "24030-EC-208", "24030-EC-209", "24030-EC-210", "24030-EC-211", "24030-EC-212", "24030-EC-214", "24030-EC-215", "24030-EC-216", "24030-EC-217", "24030-EC-218", "24030-EC-219", "24030-EC-220", "24030-EC-221", "24030-EC-222", "24030-EC-223", "24030-EC-224", "24030-EC-225", "24030-EC-226", "24030-EC-227", "24030-EC-228", "24030-EC-229", "24030-EC-230", "24030-EC-231", "24030-EC-232", "24030-EC-233", "24030-EC-234", "24030-EC-235", "24030-EC-236", "24030-EC-237", "24030-EC-238", "24030-EC-239", "24030-EC-240", "24030-EC-241", "24030-EC-242", "24030-EC-243", "24030-EC-244", "24030-EC-245", "24030-EC-246", "24030-EC-247", "24030-EC-248", "24030-EC-249", "24030-EC-250", "24030-EC-251", "24030-EC-252", "24030-EC-253", "24030-EC-254", "24030-EC-255", "24030-EC-256", "24030-EC-257", "24030-EC-258", "24030-EC-259", "24030-EC-260", "24030-EC-261", "24030-EC-262", "24030-EC-263", "24030-EC-264", "23030-EC-057"],
+                "3": ["23030-EC-001", "23030-EC-002", "23030-EC-003", "23030-EC-004", "23030-EC-005", "23030-EC-006", "23030-EC-007", "23030-EC-008", "23030-EC-009", "23030-EC-010", "23030-EC-011", "23030-EC-012", "23030-EC-013", "23030-EC-014", "23030-EC-015", "23030-EC-016", "23030-EC-017", "23030-EC-018", "23030-EC-019", "23030-EC-020", "23030-EC-021", "23030-EC-022", "23030-EC-023", "23030-EC-024", "23030-EC-025", "23030-EC-026", "23030-EC-027", "23030-EC-028", "23030-EC-030", "23030-EC-031", "23030-EC-032", "23030-EC-033", "23030-EC-034", "23030-EC-035", "23030-EC-036", "23030-EC-037", "23030-EC-038", "23030-EC-039", "23030-EC-040", "23030-EC-041", "23030-EC-042", "23030-EC-043", "23030-EC-044", "23030-EC-045", "23030-EC-046", "23030-EC-047", "23030-EC-048", "23030-EC-049", "23030-EC-050", "23030-EC-051", "23030-EC-052", "23030-EC-053", "23030-EC-054", "23030-EC-055", "23030-EC-056", "23030-EC-058", "23030-EC-059", "23030-EC-060", "23030-EC-061", "23030-EC-062", "23030-EC-063", "23030-EC-064", "23030-EC-065", "23030-EC-066", "23030-EC-067", "23030-EC-068", "23030-EC-069", "23030-EC-070", "23030-EC-071", "23030-EC-072", "23030-EC-073", "23030-EC-074", "23030-EC-075", "23030-EC-076", "23030-EC-077", "23030-EC-078", "23030-EC-079", "23030-EC-080", "23030-EC-081", "23030-EC-082", "23030-EC-083", "23030-EC-084", "23030-EC-085", "23030-EC-086", "23030-EC-087", "23030-EC-088", "23030-EC-089", "23030-EC-090", "23030-EC-091", "23030-EC-092", "23030-EC-093", "23030-EC-094", "23030-EC-095", "23030-EC-096", "23030-EC-097", "23030-EC-098", "23030-EC-099", "23030-EC-100", "23030-EC-101", "23030-EC-102", "23030-EC-103", "23030-EC-104", "23030-EC-105", "23030-EC-106", "23030-EC-107", "23030-EC-108", "23030-EC-109", "23030-EC-110", "23030-EC-111", "23030-EC-112", "23030-EC-113", "23030-EC-114", "23030-EC-115", "23030-EC-116", "23030-EC-117", "23030-EC-118", "23030-EC-119", "23030-EC-120", "23030-EC-121", "23030-EC-122", "23030-EC-123", "23030-EC-124", "23030-EC-125", "23030-EC-126", "23030-EC-127", "23030-EC-128", "23030-EC-129", "23030-EC-130", "23030-EC-131", "23030-EC-132", "23030-EC-133", "23030-EC-134", "23030-EC-135", "23030-EC-136", "23030-EC-137", "23030-EC-138", "23030-EC-139", "23030-EC-140", "23030-EC-141", "23030-EC-142", "23030-EC-143", "23030-EC-144", "23030-EC-145", "23030-EC-146", "23030-EC-147", "23030-EC-148", "23030-EC-149", "23030-EC-150", "23030-EC-151", "23030-EC-152", "23030-EC-153", "23030-EC-154", "23030-EC-155", "23030-EC-156", "23030-EC-157", "23030-EC-158", "23030-EC-159", "23030-EC-160", "23030-EC-161", "23030-EC-162", "23030-EC-163", "23030-EC-164", "23030-EC-165", "23030-EC-166", "23030-EC-167", "23030-EC-168", "23030-EC-169", "23030-EC-170", "23030-EC-171", "23030-EC-172", "23030-EC-173", "23030-EC-174", "23030-EC-175", "23030-EC-176", "23030-EC-177", "23030-EC-178", "23030-EC-179", "23030-EC-180", "23030-EC-181", "23030-EC-182", "23030-EC-183", "23030-EC-184", "23030-EC-185", "23030-EC-186", "23030-EC-187", "23030-EC-188", "23030-EC-189", "23030-EC-190", "23030-EC-191", "23030-EC-192", "23030-EC-195", "23030-EC-196", "23030-EC-198", "23030-EC-199", "23030-EC-200", "23030-EC-201", "23030-EC-202", "23030-EC-203", "23030-EC-204", "23030-EC-205", "23030-EC-206", "23030-EC-207", "23030-EC-208", "23030-EC-209", "23030-EC-210", "23030-EC-211", "23030-EC-212", "23030-EC-213", "23030-EC-214", "23030-EC-215", "23030-EC-216", "23030-EC-217", "23030-EC-218", "23030-EC-219", "23030-EC-220", "23030-EC-221", "23030-EC-222", "23030-EC-223", "23030-EC-224", "23030-EC-225", "23030-EC-226", "23030-EC-227", "23030-EC-228", "23030-EC-229", "23030-EC-230", "23030-EC-231", "23030-EC-232", "23030-EC-233", "23030-EC-234", "23030-EC-235", "23030-EC-236", "23030-EC-237", "23030-EC-239", "23030-EC-240", "23030-EC-241", "23030-EC-242", "23030-EC-243", "23030-EC-244", "23030-EC-245", "23030-EC-246", "23030-EC-247", "23030-EC-248", "23030-EC-249", "23030-EC-250", "23030-EC-251", "23030-EC-252", "23030-EC-253", "23030-EC-254", "23030-EC-255", "23030-EC-256", "23030-EC-257", "23030-EC-258", "23030-EC-259", "23030-EC-260", "23030-EC-261", "23030-EC-262", "23030-EC-263", "23030-EC-264"]
+            },
+            "CIVIL": {
+                "1": ["25030-C-001", "25030-C-002", "25030-C-003", "25030-C-004", "25030-C-005", "25030-C-006", "25030-C-007", "25030-C-008", "25030-C-009", "25030-C-010", "25030-C-011", "25030-C-012", "25030-C-013", "25030-C-014", "25030-C-015", "25030-C-016", "25030-C-017", "25030-C-018", "25030-C-019", "25030-C-020", "25030-C-021", "25030-C-022", "25030-C-023", "25030-C-024", "25030-C-025", "25030-C-026", "25030-C-027", "25030-C-028", "25030-C-029", "25030-C-030", "25030-C-031", "25030-C-032", "25030-C-033", "25030-C-034", "25030-C-035", "25030-C-036", "25030-C-037", "25030-C-038", "25030-C-039", "25030-C-040", "25030-C-041", "25030-C-042", "25030-C-043", "25030-C-044", "25030-C-045", "25030-C-046", "25030-C-047", "25030-C-048", "25030-C-049", "25030-C-050", "25030-C-051", "25030-C-052", "25030-C-053", "25030-C-054", "25030-C-055", "25030-C-056", "25030-C-057", "25030-C-058", "25030-C-059", "25030-C-060", "25030-C-061", "25030-C-062", "25030-C-063", "25030-C-064", "25030-C-065", "25030-C-066", "25030-C-067", "25030-C-068", "25030-C-069", "25030-C-070", "25030-C-071", "25030-C-072", "25030-C-073", "25030-C-074", "25030-C-075", "25030-C-076", "25030-C-077", "25030-C-078", "25030-C-079", "25030-C-080", "25030-C-081", "25030-C-082", "25030-C-083", "25030-C-084", "25030-C-085", "25030-C-086", "25030-C-087", "25030-C-088", "25030-C-089", "25030-C-090", "25030-C-091", "25030-C-092", "25030-C-093", "25030-C-094", "25030-C-095", "25030-C-096", "25030-C-097", "25030-C-098", "25030-C-099", "25030-C-100", "25030-C-101", "25030-C-102", "25030-C-103", "25030-C-104", "25030-C-105", "25030-C-106", "25030-C-107", "25030-C-108", "25030-C-109", "25030-C-110", "25030-C-111", "25030-C-112", "25030-C-113", "25030-C-114", "25030-C-115", "25030-C-116", "25030-C-117", "25030-C-118", "25030-C-119", "25030-C-120", "25030-C-121", "25030-C-122", "25030-C-123", "25030-C-124", "25030-C-125", "25030-C-126", "25030-C-127", "25030-C-128", "25030-C-129", "25030-C-130"],
+                "2": ["24030-C-001", "24030-C-002", "24030-C-003", "24030-C-005", "24030-C-006", "24030-C-007", "24030-C-008", "24030-C-009", "24030-C-010", "24030-C-012", "24030-C-013", "24030-C-014", "24030-C-015", "24030-C-016", "24030-C-017", "24030-C-018", "24030-C-019", "24030-C-020", "24030-C-021", "24030-C-022", "24030-C-023", "24030-C-024", "24030-C-025", "24030-C-026", "24030-C-027", "24030-C-028", "24030-C-029", "24030-C-030", "24030-C-032", "24030-C-033", "24030-C-034", "24030-C-035", "24030-C-036", "24030-C-037", "24030-C-038", "24030-C-039", "24030-C-040", "24030-C-041", "24030-C-042", "24030-C-043", "24030-C-045", "24030-C-046", "24030-C-047", "24030-C-048", "24030-C-049", "24030-C-050", "24030-C-051", "24030-C-052", "24030-C-053", "24030-C-054", "24030-C-055", "24030-C-056", "24030-C-057", "24030-C-058", "24030-C-059", "24030-C-060", "24030-C-061", "24030-C-062", "24030-C-063", "24030-C-064", "24030-C-066", "24030-C-067", "24030-C-068", "24030-C-069", "24030-C-070", "24030-C-071", "24030-C-073", "24030-C-074", "24030-C-075", "24030-C-076", "24030-C-077", "24030-C-078", "24030-C-079", "24030-C-080", "24030-C-081", "24030-C-082", "24030-C-083", "24030-C-084", "24030-C-085", "24030-C-086", "24030-C-087", "24030-C-088", "24030-C-089", "24030-C-090", "24030-C-091", "24030-C-092", "24030-C-093", "24030-C-095", "24030-C-096", "24030-C-097", "24030-C-098", "24030-C-099", "24030-C-100", "24030-C-101", "24030-C-102", "24030-C-103", "24030-C-104", "24030-C-105", "24030-C-106", "24030-C-107", "24030-C-108", "24030-C-109", "24030-C-110", "24030-C-111", "24030-C-112", "24030-C-113", "24030-C-114", "24030-C-115", "24030-C-116", "24030-C-117", "24030-C-118", "24030-C-119", "24030-C-120", "24030-C-121", "24030-C-122", "24030-C-123", "24030-C-124", "24030-C-125", "24030-C-126", "24030-C-127", "24030-C-128", "24030-C-130", "24030-C-131"],
+                "3": ["23030-C-001", "23030-C-002", "23030-C-003", "23030-C-004", "23030-C-005", "23030-C-007", "23030-C-008", "23030-C-009", "23030-C-010", "23030-C-011", "23030-C-012", "23030-C-013", "23030-C-014", "23030-C-015", "23030-C-017", "23030-C-020", "23030-C-021", "23030-C-022", "23030-C-023", "23030-C-024", "23030-C-026", "23030-C-027", "23030-C-028", "23030-C-029", "23030-C-030", "23030-C-031", "23030-C-032", "23030-C-033", "23030-C-034", "23030-C-035", "23030-C-038", "23030-C-039", "23030-C-040", "23030-C-041", "23030-C-042", "23030-C-043", "23030-C-046", "23030-C-047", "23030-C-048", "23030-C-049", "23030-C-050", "23030-C-051", "23030-C-052", "23030-C-053", "23030-C-054", "23030-C-055", "23030-C-056", "23030-C-057", "23030-C-058", "23030-C-059", "23030-C-060", "23030-C-061", "23030-C-062", "23030-C-063", "23030-C-064", "23030-C-066", "23030-C-067", "23030-C-068", "23030-C-069", "23030-C-071", "23030-C-074", "23030-C-076", "23030-C-077", "23030-C-078", "23030-C-079", "23030-C-080", "23030-C-081", "23030-C-082", "23030-C-083", "23030-C-084", "23030-C-085", "23030-C-086", "23030-C-087", "23030-C-088", "23030-C-089", "23030-C-090", "23030-C-091", "23030-C-092", "23030-C-093", "23030-C-094", "23030-C-095"]
+            },
+            "CME": {
+                "1": ["25030-CM-001", "25030-CM-002", "25030-CM-003", "25030-CM-004", "25030-CM-005", "25030-CM-006", "25030-CM-007", "25030-CM-008", "25030-CM-009", "25030-CM-010", "25030-CM-011", "25030-CM-012", "25030-CM-013", "25030-CM-014", "25030-CM-015", "25030-CM-016", "25030-CM-017", "25030-CM-018", "25030-CM-019", "25030-CM-020", "25030-CM-021", "25030-CM-022", "25030-CM-023", "25030-CM-024", "25030-CM-025", "25030-CM-026", "25030-CM-027", "25030-CM-028", "25030-CM-029", "25030-CM-030", "25030-CM-031", "25030-CM-032", "25030-CM-033", "25030-CM-034", "25030-CM-035", "25030-CM-036", "25030-CM-037", "25030-CM-038", "25030-CM-039", "25030-CM-040", "25030-CM-041", "25030-CM-042", "25030-CM-043", "25030-CM-044", "25030-CM-045", "25030-CM-046", "25030-CM-047", "25030-CM-048", "25030-CM-049", "25030-CM-050", "25030-CM-051", "25030-CM-052", "25030-CM-053", "25030-CM-054", "25030-CM-055", "25030-CM-056", "25030-CM-057", "25030-CM-058", "25030-CM-059", "25030-CM-060", "25030-CM-061", "25030-CM-062", "25030-CM-063", "25030-CM-064", "25030-CM-065", "25030-CM-066", "25030-CM-067", "25030-CM-068", "25030-CM-069", "25030-CM-070", "25030-CM-071", "25030-CM-072", "25030-CM-073", "25030-CM-074", "25030-CM-075", "25030-CM-076", "25030-CM-077", "25030-CM-078", "25030-CM-079", "25030-CM-080", "25030-CM-081", "25030-CM-082", "25030-CM-083", "25030-CM-084", "25030-CM-085", "25030-CM-086", "25030-CM-087", "25030-CM-088", "25030-CM-089", "25030-CM-090", "25030-CM-091", "25030-CM-092", "25030-CM-093", "25030-CM-094", "25030-CM-095", "25030-CM-096", "25030-CM-097", "25030-CM-098", "25030-CM-099", "25030-CM-100", "25030-CM-101", "25030-CM-102", "25030-CM-103", "25030-CM-104", "25030-CM-105", "25030-CM-106", "25030-CM-107", "25030-CM-108", "25030-CM-109", "25030-CM-110", "25030-CM-111", "25030-CM-112", "25030-CM-113", "25030-CM-114", "25030-CM-115", "25030-CM-116", "25030-CM-117", "25030-CM-118", "25030-CM-119", "25030-CM-120", "25030-CM-121", "25030-CM-122", "25030-CM-123", "25030-CM-124", "25030-CM-125", "25030-CM-126", "25030-CM-127", "25030-CM-128", "25030-CM-129", "25030-CM-130", "25030-CM-131", "25030-CM-132", "25030-CM-133", "25030-CM-134", "25030-CM-135", "25030-CM-136", "25030-CM-137", "25030-CM-138", "25030-CM-139", "25030-CM-140", "25030-CM-141", "25030-CM-142", "25030-CM-143", "25030-CM-144", "25030-CM-145", "25030-CM-146", "25030-CM-147", "25030-CM-148", "25030-CM-149", "25030-CM-150", "25030-CM-151", "25030-CM-152", "25030-CM-153", "25030-CM-154", "25030-CM-155", "25030-CM-156", "25030-CM-157", "25030-CM-158", "25030-CM-159", "25030-CM-160", "25030-CM-161", "25030-CM-162", "25030-CM-163", "25030-CM-164", "25030-CM-165", "25030-CM-166", "25030-CM-167", "25030-CM-168", "25030-CM-169", "25030-CM-170", "25030-CM-171", "25030-CM-172", "25030-CM-173", "25030-CM-174", "25030-CM-175", "25030-CM-176", "25030-CM-177", "25030-CM-178", "25030-CM-179", "25030-CM-180", "25030-CM-181", "25030-CM-182", "25030-CM-183", "25030-CM-184", "25030-CM-185", "25030-CM-186", "25030-CM-187", "25030-CM-188", "25030-CM-189", "25030-CM-190", "25030-CM-191", "25030-CM-192", "25030-CM-193", "25030-CM-194", "25030-CM-195", "25030-CM-196", "25030-CM-197", "25030-CM-198", "25030-CM-199", "25030-CM-200", "25030-CM-201", "25030-CM-202", "25030-CM-203", "25030-CM-204", "25030-CM-205", "25030-CM-206", "25030-CM-207", "25030-CM-208", "25030-CM-209", "25030-CM-210", "25030-CM-211", "25030-CM-212", "25030-CM-213", "25030-CM-214", "25030-CM-215", "25030-CM-216", "25030-CM-217", "25030-CM-218", "25030-CM-219", "25030-CM-220", "25030-CM-221", "25030-CM-222", "25030-CM-223", "25030-CM-224", "25030-CM-225", "25030-CM-226", "25030-CM-227", "25030-CM-228", "25030-CM-229", "25030-CM-230", "25030-CM-231", "25030-CM-232", "25030-CM-233", "25030-CM-234", "25030-CM-235", "25030-CM-236", "25030-CM-237", "25030-CM-238", "25030-CM-239", "25030-CM-240", "25030-CM-241", "25030-CM-242", "25030-CM-243", "25030-CM-244", "25030-CM-245", "25030-CM-246", "25030-CM-247", "25030-CM-248", "25030-CM-249", "25030-CM-250", "25030-CM-251", "25030-CM-252", "25030-CM-253", "25030-CM-254", "25030-CM-255", "25030-CM-256", "25030-CM-257", "25030-CM-258", "25030-CM-259", "25030-CM-260", "25030-CM-261", "25030-CM-262", "25030-CM-263", "25030-CM-264", "25030-CM-265", "25030-CM-266", "25030-CM-267", "25030-CM-268", "25030-CM-269", "25030-CM-270", "25030-CM-271", "25030-CM-272", "25030-CM-273", "25030-CM-274", "25030-CM-275", "25030-CM-276", "25030-CM-277", "25030-CM-278", "25030-CM-279", "25030-CM-280", "25030-CM-281", "25030-CM-282", "25030-CM-283", "25030-CM-284", "25030-CM-285", "25030-CM-286", "25030-CM-287", "25030-CM-288", "25030-CM-289", "25030-CM-290", "25030-CM-291", "25030-CM-292", "25030-CM-293", "25030-CM-294", "25030-CM-295", "25030-CM-296", "25030-CM-297", "25030-CM-298", "25030-CM-299", "25030-CM-300", "25030-CM-301", "25030-CM-302", "25030-CM-303", "25030-CM-304", "25030-CM-305", "25030-CM-306", "25030-CM-307", "25030-CM-308", "25030-CM-309", "25030-CM-310", "25030-CM-311", "25030-CM-312", "25030-CM-313", "25030-CM-314", "25030-CM-315", "25030-CM-316", "25030-CM-317", "25030-CM-318", "25030-CM-319", "25030-CM-320", "25030-CM-321", "25030-CM-322", "25030-CM-323", "25030-CM-324", "25030-CM-325", "25030-CM-326", "25030-CM-327", "25030-CM-328", "25030-CM-329", "25030-CM-330"],
+                "2": ["24030-CM-001", "24030-CM-002", "24030-CM-003", "24030-CM-004", "24030-CM-005", "24030-CM-006", "24030-CM-007", "24030-CM-008", "24030-CM-009", "24030-CM-010", "24030-CM-011", "24030-CM-012", "24030-CM-013", "24030-CM-014", "24030-CM-015", "24030-CM-016", "24030-CM-017", "24030-CM-018", "24030-CM-019", "24030-CM-020", "24030-CM-021", "24030-CM-022", "24030-CM-023", "24030-CM-024", "24030-CM-025", "24030-CM-026", "24030-CM-027", "24030-CM-028", "24030-CM-029", "24030-CM-030", "24030-CM-031", "24030-CM-032", "24030-CM-033", "24030-CM-034", "24030-CM-035", "24030-CM-036", "24030-CM-037", "24030-CM-038", "24030-CM-039", "24030-CM-040", "24030-CM-041", "24030-CM-042", "24030-CM-043", "24030-CM-044", "24030-CM-045", "24030-CM-046", "24030-CM-047", "24030-CM-048", "24030-CM-049", "24030-CM-050", "24030-CM-051", "24030-CM-052", "24030-CM-053", "24030-CM-054", "24030-CM-055", "24030-CM-056", "24030-CM-057", "24030-CM-058", "24030-CM-059", "24030-CM-060", "24030-CM-061", "24030-CM-062", "24030-CM-063", "24030-CM-064", "24030-CM-065", "24030-CM-066", "24030-CM-068", "24030-CM-069", "24030-CM-070", "24030-CM-071", "24030-CM-072", "24030-CM-073", "24030-CM-074", "24030-CM-075", "24030-CM-076", "24030-CM-077", "24030-CM-079", "24030-CM-080", "24030-CM-081", "24030-CM-082", "24030-CM-083", "24030-CM-084", "24030-CM-085", "24030-CM-086", "24030-CM-087", "24030-CM-088", "24030-CM-089", "24030-CM-090", "24030-CM-091", "24030-CM-092", "24030-CM-093", "24030-CM-094", "24030-CM-095", "24030-CM-096", "24030-CM-097", "24030-CM-098", "24030-CM-099", "24030-CM-100", "24030-CM-101", "24030-CM-102", "24030-CM-103", "24030-CM-104", "24030-CM-105", "24030-CM-106", "24030-CM-107", "24030-CM-108", "24030-CM-109", "24030-CM-110", "24030-CM-111", "24030-CM-112", "24030-CM-113", "24030-CM-114", "24030-CM-115", "24030-CM-116", "24030-CM-117", "24030-CM-118", "24030-CM-119", "24030-CM-120", "24030-CM-121", "24030-CM-122", "24030-CM-123", "24030-CM-124", "24030-CM-125", "24030-CM-126", "24030-CM-127", "24030-CM-128", "24030-CM-129", "24030-CM-130", "24030-CM-131", "24030-CM-132", "24030-CM-133", "24030-CM-134", "24030-CM-135", "24030-CM-136", "24030-CM-137", "24030-CM-138", "24030-CM-139", "24030-CM-140", "24030-CM-141", "24030-CM-142", "24030-CM-143", "24030-CM-144", "24030-CM-145", "24030-CM-146", "24030-CM-147", "24030-CM-148", "24030-CM-149", "25030-CM-150", "25030-CM-151", "25030-CM-152", "25030-CM-153", "25030-CM-154", "25030-CM-155", "25030-CM-156", "25030-CM-157", "25030-CM-158", "25030-CM-159", "25030-CM-160", "25030-CM-161", "25030-CM-162", "25030-CM-163", "25030-CM-164", "25030-CM-165", "25030-CM-166", "25030-CM-167", "25030-CM-168", "25030-CM-169", "25030-CM-171", "25030-CM-172", "25030-CM-173", "25030-CM-174", "25030-CM-175", "25030-CM-176", "25030-CM-177", "25030-CM-179", "25030-CM-180", "25030-CM-181", "25030-CM-182", "25030-CM-183", "25030-CM-184", "25030-CM-185", "25030-CM-186", "25030-CM-187", "25030-CM-188", "25030-CM-189", "25030-CM-190", "25030-CM-191", "25030-CM-192", "25030-CM-193", "25030-CM-194", "25030-CM-195", "25030-CM-196", "25030-CM-197", "25030-CM-198", "25030-CM-199", "25030-CM-200", "25030-CM-201", "25030-CM-202", "25030-CM-203", "25030-CM-204", "25030-CM-205", "25030-CM-206", "25030-CM-207", "25030-CM-208", "25030-CM-209", "25030-CM-210", "25030-CM-211", "25030-CM-212", "25030-CM-213", "25030-CM-214", "25030-CM-215", "25030-CM-216", "25030-CM-217", "25030-CM-218", "25030-CM-219", "25030-CM-220", "25030-CM-221", "25030-CM-222", "25030-CM-223", "25030-CM-224", "25030-CM-225", "25030-CM-226", "25030-CM-227", "25030-CM-228", "25030-CM-229", "25030-CM-230", "25030-CM-231", "25030-CM-232", "25030-CM-233", "25030-CM-234", "25030-CM-235", "25030-CM-236", "25030-CM-237", "25030-CM-238", "25030-CM-239", "25030-CM-240", "25030-CM-241", "25030-CM-242", "25030-CM-243", "25030-CM-244", "25030-CM-245", "25030-CM-246", "25030-CM-247", "25030-CM-248", "25030-CM-249", "25030-CM-250", "25030-CM-251", "25030-CM-252", "25030-CM-253", "25030-CM-254", "25030-CM-255", "25030-CM-256", "25030-CM-257", "25030-CM-258", "25030-CM-259", "25030-CM-260", "25030-CM-261", "25030-CM-262", "25030-CM-263", "25030-CM-264", "25030-CM-265", "25030-CM-266", "25030-CM-267", "25030-CM-268", "25030-CM-269", "25030-CM-270", "25030-CM-271", "25030-CM-272", "25030-CM-273", "25030-CM-274", "25030-CM-275", "25030-CM-276", "25030-CM-277", "25030-CM-278", "25030-CM-279", "25030-CM-280", "25030-CM-281", "25030-CM-282", "25030-CM-283", "25030-CM-284", "25030-CM-285", "25030-CM-286", "25030-CM-287", "25030-CM-288", "25030-CM-289", "25030-CM-290", "25030-CM-291", "25030-CM-292", "25030-CM-293", "25030-CM-294", "25030-CM-295", "25030-CM-296", "25030-CM-297", "25030-CM-298", "25030-CM-299", "25030-CM-300", "25030-CM-301", "25030-CM-302", "25030-CM-303", "25030-CM-304", "25030-CM-305", "25030-CM-306", "25030-CM-307", "25030-CM-308", "25030-CM-309", "25030-CM-310", "25030-CM-311", "25030-CM-312", "25030-CM-313", "25030-CM-314", "25030-CM-315", "25030-CM-316", "25030-CM-317", "25030-CM-318", "25030-CM-319", "25030-CM-320", "25030-CM-321", "25030-CM-322", "25030-CM-323", "25030-CM-324", "25030-CM-325", "25030-CM-326", "25030-CM-327", "25030-CM-328", "25030-CM-329", "25030-CM-330", "23030-CM-090"],
+                "3": ["23030-CM-001", "23030-CM-002", "23030-CM-003", "23030-CM-004", "23030-CM-005", "23030-CM-006", "23030-CM-007", "23030-CM-008", "23030-CM-009", "23030-CM-010", "23030-CM-011", "23030-CM-012", "23030-CM-013", "23030-CM-014", "23030-CM-015", "23030-CM-016", "23030-CM-017", "23030-CM-018", "23030-CM-019", "23030-CM-020", "23030-CM-021", "23030-CM-022", "23030-CM-023", "23030-CM-024", "23030-CM-025", "23030-CM-026", "23030-CM-027", "23030-CM-028", "23030-CM-029", "23030-CM-030", "23030-CM-031", "23030-CM-032", "23030-CM-033", "23030-CM-034", "23030-CM-035", "23030-CM-036", "23030-CM-037", "23030-CM-038", "23030-CM-039", "23030-CM-040", "23030-CM-041", "23030-CM-042", "23030-CM-043", "23030-CM-044", "23030-CM-045", "23030-CM-046", "23030-CM-047", "23030-CM-048", "23030-CM-049", "23030-CM-050", "23030-CM-051", "23030-CM-052", "23030-CM-053", "23030-CM-054", "23030-CM-055", "23030-CM-056", "23030-CM-057", "23030-CM-058", "23030-CM-059", "23030-CM-060", "23030-CM-061", "23030-CM-062", "23030-CM-063", "23030-CM-064", "23030-CM-065", "23030-CM-066", "23030-CM-067", "23030-CM-068", "23030-CM-069", "23030-CM-070", "23030-CM-071", "23030-CM-072", "23030-CM-073", "23030-CM-074", "23030-CM-075", "23030-CM-076", "23030-CM-077", "23030-CM-078", "23030-CM-079", "23030-CM-080", "23030-CM-081", "23030-CM-082", "23030-CM-083", "23030-CM-084", "23030-CM-085", "23030-CM-087", "23030-CM-088", "23030-CM-089", "23030-CM-091", "23030-CM-092", "23030-CM-093", "23030-CM-094", "23030-CM-096", "23030-CM-097", "23030-CM-098", "23030-CM-099", "23030-CM-100", "23030-CM-101", "23030-CM-102", "23030-CM-104", "23030-CM-105", "23030-CM-106", "23030-CM-107", "23030-CM-108", "23030-CM-109", "23030-CM-110", "23030-CM-111", "23030-CM-112", "23030-CM-113", "23030-CM-114", "23030-CM-115", "23030-CM-116", "23030-CM-117", "23030-CM-118", "23030-CM-119", "23030-CM-120", "23030-CM-121", "23030-CM-122", "23030-CM-123", "23030-CM-124", "23030-CM-125", "23030-CM-126", "23030-CM-127", "23030-CM-128", "23030-CM-129", "23030-CM-130", "23030-CM-131", "23030-CM-132", "23030-CM-133", "23030-CM-134", "23030-CM-135", "23030-CM-136", "23030-CM-137", "23030-CM-138", "23030-CM-139", "23030-CM-140", "23030-CM-141", "23030-CM-142", "23030-CM-143", "23030-CM-144", "23030-CM-145", "23030-CM-146", "23030-CM-147", "23030-CM-148", "23030-CM-149", "23030-CM-150", "23030-CM-151", "23030-CM-152", "23030-CM-153", "23030-CM-154", "23030-CM-155", "23030-CM-157", "23030-CM-158", "23030-CM-159", "23030-CM-160", "23030-CM-161", "23030-CM-162", "23030-CM-163", "23030-CM-164", "23030-CM-165", "23030-CM-166", "23030-CM-167", "23030-CM-168", "23030-CM-169", "23030-CM-170", "23030-CM-171", "23030-CM-172", "23030-CM-173", "23030-CM-174", "23030-CM-175", "23030-CM-176", "23030-CM-177", "23030-CM-178", "23030-CM-179", "23030-CM-180", "23030-CM-181", "23030-CM-182", "23030-CM-183", "23030-CM-184", "23030-CM-185", "23030-CM-186", "23030-CM-187", "23030-CM-188", "23030-CM-189", "23030-CM-190", "23030-CM-191", "23030-CM-192", "23030-CM-193", "23030-CM-194", "23030-CM-195", "23030-CM-196", "23030-CM-197", "23030-CM-198", "23030-CM-199", "23030-CM-200", "23030-CM-201", "23030-CM-202", "23030-CM-203", "23030-CM-204", "23030-CM-205", "23030-CM-206", "23030-CM-207", "23030-CM-208", "23030-CM-209", "23030-CM-210", "23030-CM-211", "23030-CM-212", "23030-CM-213", "23030-CM-214", "23030-CM-215", "23030-CM-216", "23030-CM-217", "23030-CM-218", "23030-CM-219", "23030-CM-220", "23030-CM-221", "23030-CM-222", "23030-CM-223", "23030-CM-224", "23030-CM-225", "23030-CM-226", "23030-CM-227", "23030-CM-228", "23030-CM-229", "23030-CM-230", "23030-CM-231", "23030-CM-232", "23030-CM-233", "23030-CM-234", "23030-CM-235", "23030-CM-236", "23030-CM-237", "23030-CM-238", "23030-CM-239", "23030-CM-240", "23030-CM-241", "23030-CM-242", "23030-CM-243", "23030-CM-244", "23030-CM-245", "23030-CM-246", "23030-CM-247", "23030-CM-248", "23030-CM-249", "23030-CM-250", "23030-CM-251", "23030-CM-252", "23030-CM-253", "23030-CM-254", "23030-CM-255", "23030-CM-256", "23030-CM-257", "23030-CM-258", "23030-CM-259", "23030-CM-260", "23030-CM-261", "23030-CM-262", "23030-CM-263", "23030-CM-264", "23030-CM-265", "23030-CM-266", "23030-CM-267", "23030-CM-268", "23030-CM-269", "23030-CM-270", "23030-CM-271", "23030-CM-272", "23030-CM-273", "23030-CM-274", "23030-CM-275", "23030-CM-276", "23030-CM-277", "23030-CM-279", "23030-CM-280", "23030-CM-281", "23030-CM-282", "23030-CM-283", "23030-CM-284", "23030-CM-285", "23030-CM-286", "23030-CM-287", "23030-CM-288", "23030-CM-289", "23030-CM-290", "23030-CM-291", "23030-CM-292", "23030-CM-293", "23030-CM-294", "23030-CM-295", "23030-CM-296", "23030-CM-297", "23030-CM-298", "23030-CM-299", "23030-CM-300", "23030-CM-301", "23030-CM-302", "23030-CM-303", "23030-CM-304", "23030-CM-305", "23030-CM-306", "23030-CM-307", "23030-CM-308", "23030-CM-309", "23030-CM-310", "23030-CM-311", "23030-CM-312", "23030-CM-313", "23030-CM-314", "23030-CM-315", "23030-CM-316", "23030-CM-317", "23030-CM-318", "23030-CM-319", "23030-CM-320", "23030-CM-321", "23030-CM-322", "23030-CM-323", "23030-CM-324", "23030-CM-325", "23030-CM-326", "23030-CM-327", "23030-CM-328", "23030-CM-329", "23030-CM-330"]
+            },
+            "AIML": {
+                "1": ["25030-AIM-001", "25030-AIM-002", "25030-AIM-003", "25030-AIM-004", "25030-AIM-005", "25030-AIM-006", "25030-AIM-007", "25030-AIM-008", "25030-AIM-009", "25030-AIM-010", "25030-AIM-011", "25030-AIM-012", "25030-AIM-013", "25030-AIM-014", "25030-AIM-015", "25030-AIM-016", "25030-AIM-017", "25030-AIM-018", "25030-AIM-019", "25030-AIM-020", "25030-AIM-021", "25030-AIM-022", "25030-AIM-023", "25030-AIM-024", "25030-AIM-025", "25030-AIM-026", "25030-AIM-027", "25030-AIM-028", "25030-AIM-029", "25030-AIM-030", "25030-AIM-031", "25030-AIM-032", "25030-AIM-033", "25030-AIM-034", "25030-AIM-035", "25030-AIM-036", "25030-AIM-037", "25030-AIM-038", "25030-AIM-039", "25030-AIM-040", "25030-AIM-041", "25030-AIM-042", "25030-AIM-043", "25030-AIM-044", "25030-AIM-045", "25030-AIM-046", "25030-AIM-047", "25030-AIM-048", "25030-AIM-049", "25030-AIM-050", "25030-AIM-051", "25030-AIM-052", "25030-AIM-053", "25030-AIM-054", "25030-AIM-055", "25030-AIM-056", "25030-AIM-057", "25030-AIM-058", "25030-AIM-059", "25030-AIM-060", "25030-AIM-061", "25030-AIM-062", "25030-AIM-063", "25030-AIM-064", "25030-AIM-065", "25030-AIM-066", "25030-AIM-067", "25030-AIM-068", "25030-AIM-069", "25030-AIM-070", "25030-AIM-071", "25030-AIM-072", "25030-AIM-073", "25030-AIM-074", "25030-AIM-075", "25030-AIM-076", "25030-AIM-077", "25030-AIM-078", "25030-AIM-079", "25030-AIM-080", "25030-AIM-081", "25030-AIM-082", "25030-AIM-083", "25030-AIM-084", "25030-AIM-085", "25030-AIM-086", "25030-AIM-087", "25030-AIM-088", "25030-AIM-089", "25030-AIM-090", "25030-AIM-091", "25030-AIM-092", "25030-AIM-093", "25030-AIM-094", "25030-AIM-095", "25030-AIM-096", "25030-AIM-097", "25030-AIM-098", "25030-AIM-099", "25030-AIM-100", "25030-AIM-101", "25030-AIM-102", "25030-AIM-103", "25030-AIM-104", "25030-AIM-105", "25030-AIM-106", "25030-AIM-107", "25030-AIM-108", "25030-AIM-109", "25030-AIM-110", "25030-AIM-111", "25030-AIM-112", "25030-AIM-113", "25030-AIM-114", "25030-AIM-115", "25030-AIM-116", "25030-AIM-117", "25030-AIM-118", "25030-AIM-119", "25030-AIM-120", "25030-AIM-121", "25030-AIM-122", "25030-AIM-123", "25030-AIM-124", "25030-AIM-125", "25030-AIM-126", "25030-AIM-127", "25030-AIM-128", "25030-AIM-129", "25030-AIM-130", "25030-AIM-131", "25030-AIM-132", "25030-AIM-133", "25030-AIM-134", "25030-AIM-135", "25030-AIM-136", "25030-AIM-137", "25030-AIM-138", "25030-AIM-139", "25030-AIM-140", "25030-AIM-141", "25030-AIM-142", "25030-AIM-143", "25030-AIM-144", "25030-AIM-145", "25030-AIM-146", "25030-AIM-147", "25030-AIM-148", "25030-AIM-149", "25030-AIM-150", "25030-AIM-151", "25030-AIM-152", "25030-AIM-153", "25030-AIM-154", "25030-AIM-155", "25030-AIM-156", "25030-AIM-157", "25030-AIM-158", "25030-AIM-159", "25030-AIM-160", "25030-AIM-161", "25030-AIM-162", "25030-AIM-163", "25030-AIM-164", "25030-AIM-165", "25030-AIM-166", "25030-AIM-167", "25030-AIM-168", "25030-AIM-169", "25030-AIM-170", "25030-AIM-171", "25030-AIM-172", "25030-AIM-173", "25030-AIM-174", "25030-AIM-175", "25030-AIM-176", "25030-AIM-177", "25030-AIM-178", "25030-AIM-179", "25030-AIM-180", "25030-AIM-181", "25030-AIM-182", "25030-AIM-183", "25030-AIM-184", "25030-AIM-185", "25030-AIM-186", "25030-AIM-187", "25030-AIM-188", "25030-AIM-189", "25030-AIM-190", "25030-AIM-191", "25030-AIM-192", "25030-AIM-193", "25030-AIM-194", "25030-AIM-195", "25030-AIM-196", "25030-AIM-197", "25030-AIM-198", "25030-AIM-199", "25030-AIM-200", "25030-AIM-201", "25030-AIM-202", "25030-AIM-203", "25030-AIM-204", "25030-AIM-205", "25030-AIM-206", "25030-AIM-207", "25030-AIM-208", "25030-AIM-209", "25030-AIM-210", "25030-AIM-211", "25030-AIM-212", "25030-AIM-213", "25030-AIM-214", "25030-AIM-215", "25030-AIM-216", "25030-AIM-217", "25030-AIM-218", "25030-AIM-219", "25030-AIM-220", "25030-AIM-221", "25030-AIM-222", "25030-AIM-223", "25030-AIM-224", "25030-AIM-225", "25030-AIM-226", "25030-AIM-227", "25030-AIM-228", "25030-AIM-229", "25030-AIM-230", "25030-AIM-231", "25030-AIM-232", "25030-AIM-233", "25030-AIM-234", "25030-AIM-235", "25030-AIM-236", "25030-AIM-237", "25030-AIM-238", "25030-AIM-239", "25030-AIM-240", "25030-AIM-241", "25030-AIM-242", "25030-AIM-243", "25030-AIM-244", "25030-AIM-245", "25030-AIM-246", "25030-AIM-247", "25030-AIM-248", "25030-AIM-249", "25030-AIM-250", "25030-AIM-251", "25030-AIM-252", "25030-AIM-253", "25030-AIM-254", "25030-AIM-255", "25030-AIM-256", "25030-AIM-257", "25030-AIM-258", "25030-AIM-259", "25030-AIM-260", "25030-AIM-261", "25030-AIM-262", "25030-AIM-263", "25030-AIM-264"],
+                "2": ["24030-AIM-001", "24030-AIM-002", "24030-AIM-003", "24030-AIM-004", "24030-AIM-005", "24030-AIM-006", "24030-AIM-007", "24030-AIM-008", "24030-AIM-009", "24030-AIM-010", "24030-AIM-011", "24030-AIM-012", "24030-AIM-013", "24030-AIM-014", "24030-AIM-015", "24030-AIM-016", "24030-AIM-017", "24030-AIM-018", "24030-AIM-019", "24030-AIM-020", "24030-AIM-021", "24030-AIM-022", "24030-AIM-023", "24030-AIM-024", "24030-AIM-025", "24030-AIM-026", "24030-AIM-027", "24030-AIM-028", "24030-AIM-029", "24030-AIM-030", "24030-AIM-031", "24030-AIM-032", "24030-AIM-033", "24030-AIM-034", "24030-AIM-035", "24030-AIM-036", "24030-AIM-037", "24030-AIM-038", "24030-AIM-039", "24030-AIM-040", "24030-AIM-041", "24030-AIM-042", "24030-AIM-043", "24030-AIM-045", "24030-AIM-046", "24030-AIM-047", "24030-AIM-048", "24030-AIM-049", "24030-AIM-050", "24030-AIM-051", "24030-AIM-052", "24030-AIM-053", "24030-AIM-054", "24030-AIM-055", "24030-AIM-056", "24030-AIM-057", "24030-AIM-058", "24030-AIM-059", "24030-AIM-060", "24030-AIM-061", "24030-AIM-062", "24030-AIM-063", "24030-AIM-064", "24030-AIM-065", "24030-AIM-066", "24030-AIM-067", "24030-AIM-068", "24030-AIM-069", "24030-AIM-070", "24030-AIM-071", "24030-AIM-072", "24030-AIM-073", "24030-AIM-074", "24030-AIM-075", "24030-AIM-076", "24030-AIM-077", "24030-AIM-078", "24030-AIM-079", "24030-AIM-080", "24030-AIM-081", "24030-AIM-082", "24030-AIM-083", "24030-AIM-084", "24030-AIM-085", "24030-AIM-086", "24030-AIM-087", "24030-AIM-088", "24030-AIM-089", "24030-AIM-090", "24030-AIM-091", "24030-AIM-092", "24030-AIM-093", "24030-AIM-094", "24030-AIM-095", "24030-AIM-096", "24030-AIM-097", "24030-AIM-098", "24030-AIM-099", "24030-AIM-100", "24030-AIM-101", "24030-AIM-102", "24030-AIM-103", "24030-AIM-104", "24030-AIM-105", "24030-AIM-106", "24030-AIM-107", "24030-AIM-108", "24030-AIM-109", "24030-AIM-110", "24030-AIM-111", "24030-AIM-112", "24030-AIM-113", "24030-AIM-114", "24030-AIM-115", "24030-AIM-116", "24030-AIM-117", "24030-AIM-118", "24030-AIM-120", "24030-AIM-121", "24030-AIM-122", "24030-AIM-123", "24030-AIM-124", "24030-AIM-125", "24030-AIM-126", "24030-AIM-127", "24030-AIM-128", "24030-AIM-129", "24030-AIM-130", "24030-AIM-131", "24030-AIM-132", "24030-AIM-133", "24030-AIM-134", "24030-AIM-135", "24030-AIM-136", "24030-AIM-137", "24030-AIM-138", "24030-AIM-139", "24030-AIM-140", "24030-AIM-141", "24030-AIM-142", "24030-AIM-143", "24030-AIM-144", "24030-AIM-145", "24030-AIM-146", "24030-AIM-147", "24030-AIM-148", "24030-AIM-149", "24030-AIM-150", "24030-AIM-151", "24030-AIM-152", "24030-AIM-153", "24030-AIM-154", "24030-AIM-155", "24030-AIM-156", "24030-AIM-157", "24030-AIM-158", "24030-AIM-159", "24030-AIM-160", "24030-AIM-161", "24030-AIM-162", "24030-AIM-163", "24030-AIM-164", "24030-AIM-165", "24030-AIM-166", "24030-AIM-167", "24030-AIM-168", "24030-AIM-169", "24030-AIM-170", "24030-AIM-171", "24030-AIM-172", "24030-AIM-173", "24030-AIM-174", "24030-AIM-175", "24030-AIM-176", "24030-AIM-177", "24030-AIM-178", "24030-AIM-179", "24030-AIM-180", "24030-AIM-181", "24030-AIM-182", "24030-AIM-183", "24030-AIM-184", "24030-AIM-185", "24030-AIM-186", "24030-AIM-187", "24030-AIM-188", "24030-AIM-189", "24030-AIM-190", "24030-AIM-191", "24030-AIM-192", "24030-AIM-193", "24030-AIM-194", "24030-AIM-195", "24030-AIM-196", "24030-AIM-197", "24030-AIM-198", "24030-AIM-199", "24030-AIM-200", "24030-AIM-201", "24030-AIM-203", "24030-AIM-204", "24030-AIM-205", "24030-AIM-206", "24030-AIM-207", "24030-AIM-208", "24030-AIM-209", "24030-AIM-210", "24030-AIM-211", "24030-AIM-212", "24030-AIM-213", "24030-AIM-214", "24030-AIM-215", "24030-AIM-216", "24030-AIM-217", "24030-AIM-218", "24030-AIM-219", "24030-AIM-220", "24030-AIM-221", "24030-AIM-222", "24030-AIM-223", "24030-AIM-224", "24030-AIM-225", "24030-AIM-226", "24030-AIM-227", "24030-AIM-228", "24030-AIM-229", "24030-AIM-230", "24030-AIM-231", "24030-AIM-232", "24030-AIM-233", "24030-AIM-234", "25030-AIM-235", "25030-AIM-236", "25030-AIM-237", "25030-AIM-238", "25030-AIM-239", "25030-AIM-240", "25030-AIM-241", "25030-AIM-242", "25030-AIM-243", "25030-AIM-244", "25030-AIM-245", "25030-AIM-246", "25030-AIM-247", "25030-AIM-248", "25030-AIM-249", "25030-AIM-250", "25030-AIM-251", "25030-AIM-252", "25030-AIM-253", "25030-AIM-254", "25030-AIM-255", "25030-AIM-256", "25030-AIM-257", "25030-AIM-258", "25030-AIM-259", "25030-AIM-260", "25030-AIM-261", "25030-AIM-262", "25030-AIM-263", "25030-AIM-264", "23030-AIM-057"],
+                "3": ["23030-AIM-002", "23030-AIM-003", "23030-AIM-004", "23030-AIM-005", "23030-AIM-006", "23030-AIM-007", "23030-AIM-008", "23030-AIM-009", "23030-AIM-010", "23030-AIM-011", "23030-AIM-012", "23030-AIM-013", "23030-AIM-014", "23030-AIM-015", "23030-AIM-016", "23030-AIM-017", "23030-AIM-018", "23030-AIM-019", "23030-AIM-020", "23030-AIM-021", "23030-AIM-022", "23030-AIM-023", "23030-AIM-024", "23030-AIM-025", "23030-AIM-026", "23030-AIM-027", "23030-AIM-028", "23030-AIM-029", "23030-AIM-030", "23030-AIM-031", "23030-AIM-032", "23030-AIM-033", "23030-AIM-034", "23030-AIM-035", "23030-AIM-036", "23030-AIM-037", "23030-AIM-038", "23030-AIM-039", "23030-AIM-040", "23030-AIM-041", "23030-AIM-042", "23030-AIM-043", "23030-AIM-044", "23030-AIM-045", "23030-AIM-046", "23030-AIM-047", "23030-AIM-048", "23030-AIM-049", "23030-AIM-050", "23030-AIM-051", "23030-AIM-052", "23030-AIM-053", "23030-AIM-054", "23030-AIM-055", "23030-AIM-056", "23030-AIM-058", "23030-AIM-059", "23030-AIM-060", "23030-AIM-061", "23030-AIM-062", "23030-AIM-063", "23030-AIM-064", "23030-AIM-065", "23030-AIM-066", "23030-AIM-067", "23030-AIM-069", "23030-AIM-070", "23030-AIM-071", "23030-AIM-072", "23030-AIM-073", "23030-AIM-074", "23030-AIM-075", "23030-AIM-076", "23030-AIM-077", "23030-AIM-079", "23030-AIM-080", "23030-AIM-081", "23030-AIM-082", "23030-AIM-083", "23030-AIM-084", "25030-AIM-085", "25030-AIM-086", "25030-AIM-087", "25030-AIM-088", "25030-AIM-089", "25030-AIM-090", "25030-AIM-091", "25030-AIM-092", "25030-AIM-093", "25030-AIM-094", "25030-AIM-095", "25030-AIM-096", "25030-AIM-097", "25030-AIM-098", "25030-AIM-099", "25030-AIM-100", "25030-AIM-101", "25030-AIM-102", "25030-AIM-103", "25030-AIM-104", "25030-AIM-105", "25030-AIM-106", "25030-AIM-107", "25030-AIM-108", "25030-AIM-109", "25030-AIM-110", "25030-AIM-111", "25030-AIM-112", "25030-AIM-113", "25030-AIM-114", "25030-AIM-115", "25030-AIM-116", "25030-AIM-117", "25030-AIM-118", "25030-AIM-119", "25030-AIM-120", "25030-AIM-121", "25030-AIM-122", "25030-AIM-123", "25030-AIM-124", "25030-AIM-125", "25030-AIM-126", "25030-AIM-127", "25030-AIM-128", "25030-AIM-129", "25030-AIM-130", "25030-AIM-131"]
+            },
+            
+            "CIOT": {
+                "1": ["25030-CIOT-001", "25030-CIOT-002", "25030-CIOT-003", "25030-CIOT-004", "25030-CIOT-005", "25030-CIOT-006", "25030-CIOT-007", "25030-CIOT-008", "25030-CIOT-009", "25030-CIOT-010", "25030-CIOT-011", "25030-CIOT-012", "25030-CIOT-013", "25030-CIOT-014", "25030-CIOT-015", "25030-CIOT-016", "25030-CIOT-017", "25030-CIOT-018", "25030-CIOT-019", "25030-CIOT-020", "25030-CIOT-021", "25030-CIOT-022", "25030-CIOT-023", "25030-CIOT-024", "25030-CIOT-025", "25030-CIOT-026", "25030-CIOT-027", "25030-CIOT-028", "25030-CIOT-029", "25030-CIOT-030", "25030-CIOT-031", "25030-CIOT-032", "25030-CIOT-033", "25030-CIOT-034", "25030-CIOT-035", "25030-CIOT-036", "25030-CIOT-037", "25030-CIOT-038", "25030-CIOT-039", "25030-CIOT-040", "25030-CIOT-041", "25030-CIOT-042", "25030-CIOT-043", "25030-CIOT-044", "25030-CIOT-045", "25030-CIOT-046", "25030-CIOT-047", "25030-CIOT-048", "25030-CIOT-049", "25030-CIOT-050", "25030-CIOT-051", "25030-CIOT-052", "25030-CIOT-053", "25030-CIOT-054", "25030-CIOT-055", "25030-CIOT-056", "25030-CIOT-057", "25030-CIOT-058", "25030-CIOT-059", "25030-CIOT-060", "25030-CIOT-061", "25030-CIOT-062", "25030-CIOT-063", "25030-CIOT-064", "25030-CIOT-065", "25030-CIOT-066", "25030-CIOT-067", "25030-CIOT-068", "25030-CIOT-069", "25030-CIOT-070", "25030-CIOT-071", "25030-CIOT-072", "25030-CIOT-073", "25030-CIOT-074", "25030-CIOT-075", "25030-CIOT-076", "25030-CIOT-077", "25030-CIOT-078", "25030-CIOT-079", "25030-CIOT-080", "25030-CIOT-081", "25030-CIOT-082", "25030-CIOT-083", "25030-CIOT-084", "25030-CIOT-085", "25030-CIOT-086", "25030-CIOT-087", "25030-CIOT-088", "25030-CIOT-089", "25030-CIOT-090", "25030-CIOT-091", "25030-CIOT-092", "25030-CIOT-093", "25030-CIOT-094", "25030-CIOT-095", "25030-CIOT-096", "25030-CIOT-097", "25030-CIOT-098", "25030-CIOT-099", "25030-CIOT-100", "25030-CIOT-101", "25030-CIOT-102", "25030-CIOT-103", "25030-CIOT-104", "25030-CIOT-105", "25030-CIOT-106", "25030-CIOT-107", "25030-CIOT-108", "25030-CIOT-109", "25030-CIOT-110", "25030-CIOT-111", "25030-CIOT-112", "25030-CIOT-113", "25030-CIOT-114", "25030-CIOT-115", "25030-CIOT-116", "25030-CIOT-117", "25030-CIOT-118", "25030-CIOT-119", "25030-CIOT-120", "25030-CIOT-121", "25030-CIOT-122", "25030-CIOT-123", "25030-CIOT-124", "25030-CIOT-125", "25030-CIOT-126", "25030-CIOT-127", "25030-CIOT-128", "25030-CIOT-129", "25030-CIOT-130", "25030-CIOT-131", "25030-CIOT-132"],
+                "2": ["24030-CIOT-001", "24030-CIOT-002", "24030-CIOT-003", "24030-CIOT-004", "24030-CIOT-005", "24030-CIOT-006", "24030-CIOT-007", "24030-CIOT-008", "24030-CIOT-009", "24030-CIOT-010", "24030-CIOT-011", "24030-CIOT-012", "24030-CIOT-013", "24030-CIOT-014", "24030-CIOT-015", "24030-CIOT-016", "24030-CIOT-017", "24030-CIOT-018", "24030-CIOT-019", "24030-CIOT-020", "24030-CIOT-021", "24030-CIOT-022", "24030-CIOT-023", "24030-CIOT-024", "24030-CIOT-025", "24030-CIOT-026", "24030-CIOT-027", "24030-CIOT-028", "24030-CIOT-029", "24030-CIOT-030", "24030-CIOT-031", "24030-CIOT-032", "24030-CIOT-033", "24030-CIOT-034", "24030-CIOT-035", "24030-CIOT-036", "24030-CIOT-037", "24030-CIOT-038", "24030-CIOT-039", "24030-CIOT-040", "24030-CIOT-041", "24030-CIOT-042", "24030-CIOT-043", "24030-CIOT-044", "24030-CIOT-045", "24030-CIOT-046", "24030-CIOT-047", "24030-CIOT-048", "24030-CIOT-049", "24030-CIOT-050", "24030-CIOT-051", "24030-CIOT-052", "24030-CIOT-053", "24030-CIOT-054", "24030-CIOT-055", "24030-CIOT-057", "24030-CIOT-058", "24030-CIOT-059", "24030-CIOT-060", "24030-CIOT-061", "24030-CIOT-062", "24030-CIOT-063", "24030-CIOT-064", "24030-CIOT-065", "24030-CIOT-066", "24030-CIOT-067", "24030-CIOT-068", "24030-CIOT-069", "24030-CIOT-070", "24030-CIOT-071", "24030-CIOT-072", "24030-CIOT-073", "24030-CIOT-074", "24030-CIOT-075", "24030-CIOT-076", "24030-CIOT-077", "24030-CIOT-078", "24030-CIOT-079", "24030-CIOT-080", "24030-CIOT-081", "24030-CIOT-082", "24030-CIOT-083", "24030-CIOT-084", "24030-CIOT-085", "24030-CIOT-086", "24030-CIOT-087", "24030-CIOT-088", "24030-CIOT-089", "24030-CIOT-090", "24030-CIOT-091", "24030-CIOT-092", "24030-CIOT-093", "24030-CIOT-094", "24030-CIOT-095", "24030-CIOT-096", "24030-CIOT-097", "24030-CIOT-098", "24030-CIOT-099", "24030-CIOT-100", "24030-CIOT-101", "24030-CIOT-102", "24030-CIOT-103", "24030-CIOT-104", "24030-CIOT-105", "24030-CIOT-106", "24030-CIOT-107", "24030-CIOT-108", "24030-CIOT-109", "24030-CIOT-110", "24030-CIOT-111", "24030-CIOT-112", "24030-CIOT-113", "24030-CIOT-114", "24030-CIOT-115", "24030-CIOT-116", "24030-CIOT-117", "24030-CIOT-118", "24030-CIOT-119", "24030-CIOT-120", "24030-CIOT-121", "24030-CIOT-122", "24030-CIOT-123", "24030-CIOT-124", "24030-CIOT-125", "24030-CIOT-126", "24030-CIOT-127", "24030-CIOT-128", "24030-CIOT-129", "24030-CIOT-130", "24030-CIOT-131", "24030-CIOT-132"],
+                "3": ["23030-C-001", "23030-C-002", "23030-C-003", "23030-C-004", "23030-C-005", "23030-C-007", "23030-C-008", "23030-C-009", "23030-C-010", "23030-C-011", "23030-C-012", "23030-C-013", "23030-C-014", "23030-C-015", "23030-C-017", "23030-C-020", "23030-C-021", "23030-C-022", "23030-C-023", "23030-C-024", "23030-C-026", "23030-C-027", "23030-C-028", "23030-C-029", "23030-C-030", "23030-C-031", "23030-C-032", "23030-C-033", "23030-C-034", "23030-C-035", "23030-C-038", "23030-C-039", "23030-C-040", "23030-C-041", "23030-C-042", "23030-C-043", "23030-C-046", "23030-C-047", "23030-C-048", "23030-C-049", "23030-C-050", "23030-C-051", "23030-C-052", "23030-C-053", "23030-C-054", "23030-C-055", "23030-C-056", "23030-C-057", "23030-C-058", "23030-C-059", "23030-C-060", "23030-C-061", "23030-C-062", "23030-C-063", "23030-C-064", "23030-C-066", "23030-C-067", "23030-C-068", "23030-C-069", "23030-C-071", "23030-C-074", "23030-C-076", "23030-C-077", "23030-C-078", "23030-C-079", "23030-C-080", "23030-C-081", "23030-C-082", "23030-C-083", "23030-C-084", "23030-C-085", "23030-C-086", "23030-C-087", "23030-C-088", "23030-C-089", "23030-C-090", "23030-C-091", "23030-C-092", "23030-C-093", "23030-C-094", "23030-C-095"]
+            }
+        };
+        // --- END: ALL STUDENT DATA ---
+
+        // --- DOM Element References ---
+        const loginButton = document.getElementById('login-button');
+        const logoutButton = document.getElementById('logout-button');
+        const branchFilter = document.getElementById('filter-branch');
+        const yearFilter = document.getElementById('filter-year');
+        const markLateButton = document.getElementById('mark-late-button');
+        const officeFetchFinesBtn = document.getElementById('office-fetch-fines-btn');
+        const officeResultsContainer = document.getElementById('office-results');
+        const principalFilterBranch = document.getElementById('principal-filter-branch');
+        const principalResultsContainer = document.getElementById('principal-results');
+        const studentListCheckboxContainer = document.getElementById('student-list-checkbox');
+        const quickEntryInput = document.getElementById('quick-entry');
+        const lateDateInput = document.getElementById('late-date');
+        const fineSummaryContainer = document.getElementById('fine-summary-container');
+        const historyMonthSelect = document.getElementById('history-month-select');
+        const checkHistoryBtn = document.getElementById('check-history-btn');
+        const historyResultsDisplay = document.getElementById('history-results-display');
+
+        // --- HOD Dashboard Configuration ---
+        const hodConfig = {
+            'mech@avgr.com': { branch: 'MECH', dashboardId: 'mech-dashboard', resultsId: 'mech-results', yearFilterId: 'mech-year-filter', fineFormContainerId: 'mech-impose-fine-container' },
+            'eee@avgr.com': { branch: 'EEE', dashboardId: 'eee-dashboard', resultsId: 'eee-results', yearFilterId: 'eee-year-filter', fineFormContainerId: 'eee-impose-fine-container' },
+            'ece@avgr.com': { branch: 'ECE', dashboardId: 'ece-dashboard', resultsId: 'ece-results', yearFilterId: 'ece-year-filter', fineFormContainerId: 'ece-impose-fine-container' },
+            'aiml@avgr.com': { branch: 'AIML', dashboardId: 'aiml-dashboard', resultsId: 'aiml-results', yearFilterId: 'aiml-year-filter', fineFormContainerId: 'aiml-impose-fine-container' },
+            'ciot@avgr.com': { branch: 'CIOT', dashboardId: 'ciot-dashboard', resultsId: 'ciot-results', yearFilterId: 'ciot-year-filter', fineFormContainerId: 'ciot-impose-fine-container' },
+            'cme@avgr.com': { branch: 'CME', dashboardId: 'cme-dashboard', resultsId: 'cme-results', yearFilterId: 'cme-year-filter', fineFormContainerId: 'cme-impose-fine-container' },
+            'civil@avgr.com': { branch: 'CIVIL', dashboardId: 'civil-dashboard', resultsId: 'civil-results', yearFilterId: 'civil-year-filter', fineFormContainerId: 'civil-impose-fine-container' }
+        };
+
+        // --- Auth & Routing ---
+        auth.onAuthStateChanged(user => {
+            const appContainer = document.getElementById('app-container');
+            const loginPage = document.getElementById('login-page');
+            const dashboards = document.querySelectorAll('.dashboard');
+            if (user) {
+                loginPage.style.display = 'none';
+                appContainer.style.display = 'block';
+                document.getElementById('user-info').textContent = `Logged in as: ${user.email}`;
+                showDashboardForUser(user.email);
+            } else {
+                loginPage.style.display = 'block';
+                appContainer.style.display = 'none';
+                dashboards.forEach(d => d.style.display = 'none');
+            }
+        });
+
+        loginButton.addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    const user = userCredential.user;
+                    fetch('https://api.ipify.org?format=json')
+                        .then(response => response.json())
+                        .then(data => {
+                            db.collection('loginHistory').add({
+                                email: user.email,
+                                ipAddress: data.ip,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        })
+                        .catch(ipError => {
+                            console.error("Could not fetch IP address:", ipError);
+                            db.collection('loginHistory').add({
+                                email: user.email,
+                                ipAddress: 'Unavailable',
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        });
+                })
+                .catch(error => {
+                    document.getElementById('login-error').textContent = error.message;
+                });
+        });
+
+        logoutButton.addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        function showDashboardForUser(email) {
+            document.querySelectorAll('.dashboard').forEach(d => d.style.display = 'none');
+            const hodInfo = hodConfig[email];
+
+            if (hodInfo) {
+                document.getElementById(hodInfo.dashboardId).style.display = 'block';
+                const yearFilterElement = document.getElementById(hodInfo.yearFilterId);
+                loadHODFines(hodInfo.branch, hodInfo.resultsId, hodInfo.yearFilterId);
+                yearFilterElement.addEventListener('change', () => loadHODFines(hodInfo.branch, hodInfo.resultsId, hodInfo.yearFilterId));
+                renderImposeFineForm(hodInfo.fineFormContainerId, hodInfo.branch);
+            } else if (email === 'supervisor@avgr.com') {
+                document.getElementById('supervisor-dashboard').style.display = 'block';
+                lateDateInput.valueAsDate = new Date();
+                const now = new Date();
+                historyMonthSelect.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                populateStudentChecklist();
+                
+                // Setup for the new Review & Remove feature
+                document.getElementById('review-date').valueAsDate = new Date();
+                document.getElementById('fetch-late-entries-btn').addEventListener('click', fetchLateEntriesForReview);
+                document.getElementById('review-results-container').addEventListener('click', handleRemoveLateEntry);
+
+            } else if (email === 'office@avgr.com') {
+                document.getElementById('office-dashboard').style.display = 'block';
+            } else if (email === 'principal@avgr.com' || email === 'mentor@avgr.com') {
+                document.getElementById('principal-dashboard').style.display = 'block';
+                const principalYearFilter = document.getElementById('principal-filter-year');
+                loadAllFinesPrincipal();
+                principalFilterBranch.addEventListener('change', loadAllFinesPrincipal);
+                principalYearFilter.addEventListener('change', loadAllFinesPrincipal);
+                renderImposeFineForm('principal-impose-fine-container', null);
+
+                const now = new Date();
+                document.getElementById('principal-monthly-report-month').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                document.getElementById('principal-download-monthly-report-btn').addEventListener('click', () => generateAndDownloadMonthlyReport('principal'));
+            } else if (email === 'admin@avgr.com') {
+                document.getElementById('admin-dashboard').style.display = 'block';
+                loadLoginHistory();
+                loadFineSummary();
+                
+                document.getElementById('admin-report-date').valueAsDate = new Date();
+                document.getElementById('download-late-report-btn').addEventListener('click', generateAndDownloadDailyReport);
+
+                const now = new Date();
+                document.getElementById('admin-monthly-report-month').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                document.getElementById('download-monthly-report-btn').addEventListener('click', () => generateAndDownloadMonthlyReport('admin'));
+            }
+        }
+
+        // --- Supervisor Dashboard Logic ---
+        function populateStudentChecklist() {
+            const students = allStudents[branchFilter.value]?.[yearFilter.value] || [];
+            let checkboxHTML = '';
+            if (students.length === 0) {
+                checkboxHTML = '<p>No students found for this selection.</p>';
+            } else {
+                students.forEach(studentId => {
+                    const lastDigits = parseInt(studentId.slice(-3), 10);
+                    checkboxHTML += `<label style="display: block;"><input type="checkbox" class="student-checkbox" value="${studentId}" data-last-digits="${lastDigits}"> ${studentId}</label>`;
+                });
+            }
+            studentListCheckboxContainer.innerHTML = checkboxHTML;
+            updateQuickEntryFromCheckboxes();
+        }
+
+        function updateCheckboxesFromQuickEntry() {
+            const numbers = new Set(quickEntryInput.value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)));
+            document.querySelectorAll('.student-checkbox').forEach(cb => {
+                cb.checked = numbers.has(parseInt(cb.dataset.lastDigits));
+            });
+        }
+
+        function updateQuickEntryFromCheckboxes() {
+            const checkedNumbers = [];
+            document.querySelectorAll('.student-checkbox:checked').forEach(cb => {
+                checkedNumbers.push(cb.dataset.lastDigits);
+            });
+            quickEntryInput.value = checkedNumbers.join(', ');
+        }
+        branchFilter.addEventListener('change', populateStudentChecklist);
+        yearFilter.addEventListener('change', populateStudentChecklist);
+        quickEntryInput.addEventListener('input', updateCheckboxesFromQuickEntry);
+        studentListCheckboxContainer.addEventListener('change', updateQuickEntryFromCheckboxes);
+        
+        markLateButton.addEventListener('click', async () => {
+            fineSummaryContainer.style.display = 'none';
+            fineSummaryContainer.innerHTML = '';
+            const selectedDate = lateDateInput.value;
+            const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.value);
+            const markLateMessage = document.getElementById('mark-late-message');
+            if (!selectedDate || selectedStudents.length === 0) {
+                markLateMessage.textContent = 'Please select a date and at least one student.';
+                markLateMessage.className = 'error-message';
+                return;
+            }
+            markLateButton.disabled = true;
+            markLateMessage.textContent = `Processing ${selectedStudents.length} students...`;
+            markLateMessage.className = 'info-message';
+            let successCount = 0;
+            const newlyFinedStudents = [];
+            for (const studentId of selectedStudents) {
+                try {
+                    const lateRecord = {
+                        studentId,
+                        branch: branchFilter.value,
+                        year: yearFilter.value,
+                        lateType: document.getElementById('late-type').value,
+                        date: selectedDate,
+                        session: document.getElementById('late-session').value,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        remarks: `${document.getElementById('late-type').value} Late`
+                    };
+                    await db.collection('lateEntries').add(lateRecord);
+                    const dateObj = new Date(selectedDate);
+                    const monthYear = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+                    const startDate = `${monthYear}-01`;
+                    const endDate = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).toISOString().split('T')[0];
+                    const latesQuery = await db.collection('lateEntries').where('studentId', '==', studentId).where('date', '>=', startDate).where('date', '<=', endDate).get();
+                    const lateCount = latesQuery.size;
+                    if (lateCount > 2) {
+                        const newTotalFine = (lateCount - 2) * 20;
+                        const existingFineQuery = await db.collection('fines').where('studentId', '==', studentId).where('monthYear', '==', monthYear).get();
+                        if (existingFineQuery.empty) {
+                            const fineData = {
+                                studentId,
+                                totalFine: newTotalFine,
+                                amountPaid: 0,
+                                status: 'unpaid',
+                                monthYear,
+                                branch: branchFilter.value,
+                                year: yearFilter.value,
+                                assignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                remarks: `Fine for ${lateCount} lates in ${monthYear}`
+                            };
+                            const newFineDoc = await db.collection('fines').add(fineData);
+                            newlyFinedStudents.push({
+                                studentId: studentId,
+                                fineId: newFineDoc.id
+                            });
+                        } else {
+                            const fineDoc = existingFineQuery.docs[0];
+                            await db.collection('fines').doc(fineDoc.id).update({
+                                totalFine: newTotalFine,
+                                remarks: `Fine updated for ${lateCount} lates in ${monthYear}`
+                            });
+                        }
+                    }
+                    successCount++;
+                } catch (e) {
+                    console.error(`Failed to process ${studentId}:`, e);
+                }
+            }
+            markLateMessage.textContent = `Completed. Marked ${successCount} students late.`;
+            markLateMessage.className = 'success-message';
+            markLateButton.disabled = false;
+            populateStudentChecklist();
+            if (newlyFinedStudents.length > 0) {
+                displayFineSummary(newlyFinedStudents);
+            }
+        });
+
+        function displayFineSummary(finedStudents) {
+            let tableHTML = `<h3>Newly Assigned Fines</h3><p>If a fine was assigned by mistake, you can remove it now.</p><table><tr><th>Student ID</th><th>Action</th></tr>`;
+            finedStudents.forEach(student => {
+                tableHTML += `<tr data-summary-row-id="${student.fineId}"><td>${student.studentId}</td><td><button class="action-button remove-fine-btn" data-fine-id="${student.fineId}">Remove Fine</button></td></tr>`;
+            });
+            tableHTML += `</table>`;
+            fineSummaryContainer.innerHTML = tableHTML;
+            fineSummaryContainer.style.display = 'block';
+        }
+        fineSummaryContainer.addEventListener('click', async (e) => {
+            if (e.target && e.target.classList.contains('remove-fine-btn')) {
+                const button = e.target;
+                const fineId = button.dataset.fineId;
+                if (confirm('Are you sure you want to remove this newly created fine?')) {
+                    button.disabled = true;
+                    button.textContent = 'Removing...';
+                    try {
+                        await db.collection('fines').doc(fineId).delete();
+                        const row = document.querySelector(`tr[data-summary-row-id="${fineId}"]`);
+                        row.remove();
+                    } catch (err) {
+                        alert('Error removing fine. Please try again.');
+                        button.disabled = false;
+                        button.textContent = 'Remove Fine';
+                    }
+                }
+            }
+        });
+        checkHistoryBtn.addEventListener('click', async () => {
+            const historyBranchSelect = document.getElementById('history-branch-select');
+            const selectedBranch = historyBranchSelect.value;
+            const selectedMonth = historyMonthSelect.value;
+            if (!selectedBranch || !selectedMonth) {
+                historyResultsDisplay.innerHTML = `<p class="error-message">Please select a branch and a month.</p>`;
+                return;
+            }
+            historyResultsDisplay.innerHTML = `<p class="info-message">Fetching fined students for ${selectedBranch} in ${selectedMonth}...</p>`;
+            try {
+                const finesQuery = await db.collection('fines').where('branch', '==', selectedBranch).where('monthYear', '==', selectedMonth).get();
+                if (finesQuery.empty) {
+                    historyResultsDisplay.innerHTML = `<p>No students were fined in the <b>${selectedBranch}</b> branch for <b>${selectedMonth}</b>.</p>`;
+                    return;
+                }
+                let resultsHTML = `<p>Found <b>${finesQuery.size}</b> fined student(s) for <b>${selectedBranch}</b> in <b>${selectedMonth}</b>:</p>`;
+                resultsHTML += `<table><tr><th>Student ID</th><th>Total Fine</th><th>Paid</th><th>Balance</th><th>Status</th><th>Remarks</th></tr>`;
+                finesQuery.forEach(doc => {
+                    const fine = doc.data();
+                    const balance = fine.totalFine - fine.amountPaid;
+                    const statusClass = fine.status.toLowerCase().replace(' ', '-');
+                    resultsHTML += `<tr><td>${fine.studentId}</td><td>₹${fine.totalFine}</td><td>₹${fine.amountPaid}</td><td>₹${balance}</td><td><span class="${statusClass}">${fine.status.toUpperCase()}</span></td><td class="remarks-cell">${fine.remarks || ''}</td></tr>`;
+                });
+                resultsHTML += `</table>`;
+                historyResultsDisplay.innerHTML = resultsHTML;
+            } catch (e) {
+                historyResultsDisplay.innerHTML = `<p class="error-message">Error: ${e.message}.</p>`;
+                console.error(e);
+            }
+        });
+
+        // --- NEW Supervisor Functions ---
+        async function fetchLateEntriesForReview() {
+            const date = document.getElementById('review-date').value;
+            const lateType = document.getElementById('review-late-type').value;
+            const resultsContainer = document.getElementById('review-results-container');
+
+            if (!date) {
+                resultsContainer.innerHTML = `<p class="error-message">Please select a date to fetch entries.</p>`;
+                return;
+            }
+            resultsContainer.innerHTML = `<p class="info-message">Fetching entries for ${date}...</p>`;
+
+            try {
+                const query = await db.collection('lateEntries')
+                    .where('date', '==', date)
+                    .where('lateType', '==', lateType)
+                    .orderBy('studentId')
+                    .get();
+                
+                if (query.empty) {
+                    resultsContainer.innerHTML = `<p>No ${lateType} late entries found for ${date}.</p>`;
+                    return;
+                }
+
+                let tableHTML = `<table><tr><th>Student ID</th><th>Session</th><th>Action</th></tr>`;
+                query.forEach(doc => {
+                    const entry = doc.data();
+                    tableHTML += `
+                        <tr data-row-id="${doc.id}">
+                            <td>${entry.studentId}</td>
+                            <td>${entry.session}</td>
+                            <td>
+                                <button class="action-button remove-late-entry-btn" 
+                                    data-doc-id="${doc.id}" 
+                                    data-student-id="${entry.studentId}" 
+                                    data-late-date="${entry.date}">
+                                    Remove
+                                </button>
+                            </td>
+                        </tr>`;
+                });
+                tableHTML += `</table>`;
+                resultsContainer.innerHTML = tableHTML;
+
+            } catch(e) {
+                resultsContainer.innerHTML = `<p class="error-message">Error fetching entries: ${e.message}</p>`;
+                console.error(e);
+            }
+        }
+
+        async function handleRemoveLateEntry(e) {
+            if (!e.target.classList.contains('remove-late-entry-btn')) return;
+
+            const button = e.target;
+            const { docId, studentId, lateDate } = button.dataset;
+
+            if (!confirm(`Are you sure you want to remove this late entry for ${studentId}?\nThis may automatically adjust the student's fine for the month.`)) {
+                return;
+            }
+            
+            button.disabled = true;
+            button.textContent = 'Removing...';
+
+            try {
+                // 1. Delete the late entry
+                await db.collection('lateEntries').doc(docId).delete();
+
+                // 2. Check for an existing fine and recalculate
+                const dateObj = new Date(lateDate);
+                const monthYear = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+                
+                const finesQuery = await db.collection('fines').where('studentId', '==', studentId).where('monthYear', '==', monthYear).limit(1).get();
+
+                if (!finesQuery.empty) {
+                    const fineDoc = finesQuery.docs[0];
+                    const startDate = `${monthYear}-01`;
+                    const endDate = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).toISOString().split('T')[0];
+                    
+                    const newLatesQuery = await db.collection('lateEntries').where('studentId', '==', studentId).where('date', '>=', startDate).where('date', '<=', endDate).get();
+                    const newLateCount = newLatesQuery.size;
+
+                    if (newLateCount <= 2) {
+                        // If lates drop to 2 or fewer, delete the fine
+                        await db.collection('fines').doc(fineDoc.id).delete();
+                    } else {
+                        // Otherwise, update the fine amount
+                        const newTotalFine = (newLateCount - 2) * 20;
+                        await db.collection('fines').doc(fineDoc.id).update({ 
+                            totalFine: newTotalFine,
+                            remarks: `Fine adjusted to ${newLateCount} lates in ${monthYear}`
+                        });
+                    }
+                }
+
+                // 3. Remove the row from the UI
+                document.querySelector(`tr[data-row-id="${docId}"]`).remove();
+
+            } catch (err) {
+                alert(`Error removing entry: ${err.message}`);
+                console.error(err);
+                button.disabled = false;
+                button.textContent = 'Remove';
+            }
+        }
+
+        // --- Admin, Department, Office, Principal Logic ---
+        async function loadLoginHistory() {
+            const historyContainer = document.getElementById('admin-login-history');
+            try {
+                const query = await db.collection('loginHistory').orderBy('timestamp', 'desc').limit(50).get();
+                if (query.empty) {
+                    historyContainer.innerHTML = '<p>No login history found.</p>';
+                    return;
+                }
+                let tableHTML = `<table><tr><th>User</th><th>IP Address</th><th>Time</th></tr>`;
+                query.forEach(doc => {
+                    const log = doc.data();
+                    const timestamp = log.timestamp ? log.timestamp.toDate().toLocaleString() : 'N/A';
+                    tableHTML += `<tr><td>${log.email}</td><td>${log.ipAddress}</td><td>${timestamp}</td></tr>`;
+                });
+                tableHTML += `</table>`;
+                historyContainer.innerHTML = tableHTML;
+            } catch (e) {
+                historyContainer.innerHTML = `<p class="error-message">Error loading login history.</p>`;
+                console.error(e);
+            }
+        }
+        async function loadFineSummary() {
+            const summaryContainer = document.getElementById('admin-fine-summary');
+            try {
+                const finesQuery = await db.collection('fines').get();
+                if (finesQuery.empty) {
+                    summaryContainer.innerHTML = '<p>No fines have been assigned yet.</p>';
+                    return;
+                }
+                const summary = {
+                    GRAND_TOTAL: {
+                        imposed: 0,
+                        paid: 0
+                    }
+                };
+                finesQuery.forEach(doc => {
+                    const fine = doc.data();
+                    const branch = fine.branch;
+                    if (!summary[branch]) {
+                        summary[branch] = {
+                            imposed: 0,
+                            paid: 0
+                        };
+                    }
+                    summary[branch].imposed += fine.totalFine || 0;
+                    summary[branch].paid += fine.amountPaid || 0;
+                    summary.GRAND_TOTAL.imposed += fine.totalFine || 0;
+                    summary.GRAND_TOTAL.paid += fine.amountPaid || 0;
+                });
+                let tableHTML = `<table><tr><th>Branch</th><th>Total Fine Imposed</th><th>Total Fine Paid</th><th>Balance</th></tr>`;
+                for (const branch in summary) {
+                    if (branch !== 'GRAND_TOTAL') {
+                        const balance = summary[branch].imposed - summary[branch].paid;
+                        tableHTML += `<tr><td>${branch}</td><td>₹${summary[branch].imposed}</td><td>₹${summary[branch].paid}</td><td>₹${balance}</td></tr>`;
+                    }
+                }
+                const totalBalance = summary.GRAND_TOTAL.imposed - summary.GRAND_TOTAL.paid;
+                tableHTML += `<tr style="font-weight: bold; background-color: #f2f2f2;"><td>GRAND TOTAL</td><td>₹${summary.GRAND_TOTAL.imposed}</td><td>₹${summary.GRAND_TOTAL.paid}</td><td>₹${totalBalance}</td></tr>`;
+                tableHTML += `</table>`;
+                summaryContainer.innerHTML = tableHTML;
+            } catch (e) {
+                summaryContainer.innerHTML = `<p class="error-message">Error calculating fine summary.</p>`;
+                console.error(e);
+            }
+        }
+        async function loadHODFines(branch, resultsContainerId, yearFilterId) {
+            const resultsContainer = document.getElementById(resultsContainerId);
+            const year = document.getElementById(yearFilterId).value;
+            resultsContainer.innerHTML = `Loading ${branch} Branch fines...`;
+            try {
+                let query = db.collection('fines').where('branch', '==', branch);
+                if (year) {
+                    query = query.where('year', '==', year);
+                }
+                query = query.orderBy('assignedAt', 'desc');
+                const q = await query.get();
+                if (q.empty) {
+                    resultsContainer.innerHTML = `<p>No fines found for the ${branch} branch` + (year ? ` in year ${year}.` : '.') + `</p>`;
+                    return;
+                }
+                let html = `<table><tr><th>Student ID</th><th>Total Fine</th><th>Paid</th><th>Balance</th><th>Status</th><th>Remarks</th></tr>`;
+                q.forEach(doc => {
+                    const d = doc.data();
+                    const balance = d.totalFine - d.amountPaid;
+                    const statusClass = d.status.toLowerCase().replace(' ', '-');
+                    html += `<tr><td>${d.studentId}</td><td>₹${d.totalFine}</td><td>₹${d.amountPaid}</td><td>₹${balance}</td><td><span class="${statusClass}">${d.status.toUpperCase()}</span></td><td class="remarks-cell">${d.remarks || ''}</td></tr>`;
+                });
+                resultsContainer.innerHTML = html;
+            } catch (e) {
+                resultsContainer.innerHTML = `<p class="error-message">Error fetching fines: ${e.message}</p>`;
+            }
+        }
+        officeFetchFinesBtn.addEventListener('click', async () => {
+            const branch = document.getElementById('office-filter-branch').value;
+            const year = document.getElementById('office-filter-year').value;
+            officeResultsContainer.innerHTML = 'Fetching fines...';
+            try {
+                const query = await db.collection('fines').where('branch', '==', branch).where('year', '==', year).orderBy('assignedAt', 'desc').get();
+                if (query.empty) {
+                    officeResultsContainer.innerHTML = '<p>No fines found for this selection.</p>';
+                    return;
+                }
+                let tableHTML = `<table><tr><th>Student ID</th><th>Total</th><th>Paid</th><th>Balance</th><th>New Payment</th><th>Action</th><th>Remarks</th></tr>`;
+                query.forEach(doc => {
+                    const fine = doc.data();
+                    const balance = fine.totalFine - fine.amountPaid;
+                    const isPaid = balance <= 0;
+                    const statusClass = isPaid ? 'paid' : (fine.amountPaid > 0 ? 'partially-paid' : 'unpaid');
+                    tableHTML += `<tr data-fine-row-id="${doc.id}"><td>${fine.studentId}</td><td class="total-fine">₹${fine.totalFine}</td><td class="amount-paid">₹${fine.amountPaid}</td><td class="balance ${statusClass}">₹${balance}</td><td><input type="number" class="payment-input" placeholder="0" ${isPaid ? 'disabled' : ''}></td><td><button class="action-button save-payment-btn" data-doc-id="${doc.id}" ${isPaid ? 'disabled' : ''}>Save</button></td><td class="remarks-cell">${fine.remarks || ''}</td></tr>`;
+                });
+                officeResultsContainer.innerHTML = tableHTML;
+            } catch (e) {
+                officeResultsContainer.innerHTML = `<p class="error-message"><strong>Error:</strong> ${e.message}</p>`;
+            }
+        });
+        document.getElementById('office-results').addEventListener('click', async (e) => {
+            if (e.target.classList.contains('save-payment-btn')) {
+                const button = e.target;
+                const docId = button.dataset.docId;
+                const row = button.closest('tr');
+                const paymentInput = row.querySelector('.payment-input');
+                const paymentAmount = parseFloat(paymentInput.value);
+                if (isNaN(paymentAmount) || paymentAmount <= 0) {
+                    alert('Please enter a valid payment amount.');
+                    return;
+                }
+                button.disabled = true;
+                button.textContent = 'Saving...';
+                await db.collection('fines').doc(docId).update({
+                    amountPaid: firebase.firestore.FieldValue.increment(paymentAmount)
+                });
+                const updatedDoc = await db.collection('fines').doc(docId).get();
+                const fine = updatedDoc.data();
+                const balance = fine.totalFine - fine.amountPaid;
+                let newStatus = fine.status;
+                if (balance <= 0) {
+                    newStatus = 'paid';
+                } else if (fine.amountPaid > 0) {
+                    newStatus = 'partially paid';
+                }
+                if (newStatus !== fine.status) {
+                    await db.collection('fines').doc(docId).update({
+                        status: newStatus
+                    });
+                }
+                const statusClass = newStatus.replace(' ', '-');
+                row.querySelector('.amount-paid').textContent = `₹${fine.amountPaid}`;
+                row.querySelector('.balance').textContent = `₹${balance}`;
+                row.querySelector('.balance').className = `balance ${statusClass}`;
+                paymentInput.value = '';
+                button.textContent = 'Save';
+                if (balance <= 0) {
+                    paymentInput.disabled = true;
+                } else {
+                    button.disabled = false;
+                }
+            }
+        });
+
+        async function loadAllFinesPrincipal() {
+            const branch = document.getElementById('principal-filter-branch').value;
+            const year = document.getElementById('principal-filter-year').value;
+            principalResultsContainer.innerHTML = 'Loading fine records...';
+            try {
+                let query = db.collection('fines');
+                if (branch) {
+                    query = query.where('branch', '==', branch);
+                }
+                if (year) {
+                    query = query.where('year', '==', year);
+                }
+                query = query.orderBy('assignedAt', 'desc');
+                const q = await query.get();
+                if (q.empty) {
+                    principalResultsContainer.innerHTML = '<p>No fines found for this selection.</p>';
+                    return;
+                }
+                let html = `<table><tr><th>Student ID</th><th>Branch</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th>Remarks</th></tr>`;
+                q.forEach(doc => {
+                    const d = doc.data();
+                    const balance = d.totalFine - d.amountPaid;
+                    const statusClass = d.status.toLowerCase().replace(' ', '-');
+                    html += `<tr><td>${d.studentId}</td><td>${d.branch}</td><td>₹${d.totalFine}</td><td>₹${d.amountPaid}</td><td>₹${balance}</td><td><span class="${statusClass}">${d.status.toUpperCase()}</span></td><td class="remarks-cell">${d.remarks || ''}</td></tr>`;
+                });
+                principalResultsContainer.innerHTML = html;
+            } catch (e) {
+                principalResultsContainer.innerHTML = `<p class="error-message">Error fetching fines: ${e.message}</p>`;
+            }
+        }
+
+        async function generateAndDownloadDailyReport() {
+            const reportDateInput = document.getElementById('admin-report-date');
+            const reportMessage = document.getElementById('admin-report-message');
+            const button = document.getElementById('download-late-report-btn');
+            const selectedDate = reportDateInput.value;
+            if (!selectedDate) {
+                reportMessage.textContent = 'Please select a date for the report.';
+                reportMessage.className = 'error-message';
+                return;
+            }
+            reportMessage.textContent = 'Generating report... Please wait.';
+            reportMessage.className = 'info-message';
+            button.disabled = true;
+            try {
+                const lateEntriesSnapshot = await db.collection('lateEntries').where('date', '==', selectedDate).orderBy('branch').orderBy('studentId').get();
+                if (lateEntriesSnapshot.empty) {
+                    reportMessage.textContent = `No late entries found for ${selectedDate}.`;
+                    reportMessage.className = 'info-message';
+                    return;
+                }
+                const lateStudentsByBranch = {};
+                lateEntriesSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (!lateStudentsByBranch[data.branch]) {
+                        lateStudentsByBranch[data.branch] = [];
+                    }
+                    lateStudentsByBranch[data.branch].push({
+                        'Student ID': data.studentId,
+                        'Year': data.year,
+                        'Late Type': data.lateType,
+                        'Session': data.session,
+                    });
+                });
+                const wb = XLSX.utils.book_new();
+                for (const branch in lateStudentsByBranch) {
+                    const ws = XLSX.utils.json_to_sheet(lateStudentsByBranch[branch]);
+                    XLSX.utils.book_append_sheet(wb, ws, branch);
+                }
+                XLSX.writeFile(wb, `Late_Students_Daily_Report_${selectedDate}.xlsx`);
+                reportMessage.textContent = 'Report downloaded successfully.';
+                reportMessage.className = 'success-message';
+            } catch (error) {
+                console.error('Error generating daily report:', error);
+                reportMessage.textContent = `Error: ${error.message}`;
+                reportMessage.className = 'error-message';
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        async function generateAndDownloadMonthlyReport(userType) {
+            const monthInput = document.getElementById(`${userType}-monthly-report-month`);
+            const reportMessage = document.getElementById(`${userType}-monthly-report-message`);
+            const button = document.getElementById(`${userType}-download-monthly-report-btn`);
+            const selectedMonth = monthInput.value;
+            
+            if (!selectedMonth) {
+                reportMessage.textContent = 'Please select a month for the report.';
+                reportMessage.className = 'error-message';
+                return;
+            }
+            reportMessage.textContent = 'Generating monthly summary... Please wait.';
+            reportMessage.className = 'info-message';
+            button.disabled = true;
+            
+            try {
+                const [year, month] = selectedMonth.split('-').map(Number);
+                const startDate = `${selectedMonth}-01`;
+                const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+                const lateEntriesSnapshot = await db.collection('lateEntries').where('date', '>=', startDate).where('date', '<=', endDate).get();
+                
+                if (lateEntriesSnapshot.empty) {
+                    reportMessage.textContent = `No late entries found for ${selectedMonth}.`;
+                    reportMessage.className = 'info-message';
+                    return;
+                }
+                
+                const branchData = {};
+                lateEntriesSnapshot.forEach(doc => {
+                    const { branch, studentId, lateType, session, date } = doc.data();
+                    const day = date.split('-')[2];
+                    
+                    if (!branchData[branch]) {
+                        branchData[branch] = {};
+                    }
+                    if (!branchData[branch][studentId]) {
+                        branchData[branch][studentId] = {
+                            totalLates: 0,
+                            gateFN: [],
+                            gateAN: [],
+                            canteenFN: [],
+                            canteenAN: []
+                        };
+                    }
+                    
+                    const studentRecord = branchData[branch][studentId];
+                    studentRecord.totalLates++;
+                    
+                    if (lateType === 'Gate' && session === 'FN') {
+                        studentRecord.gateFN.push(day);
+                    } else if (lateType === 'Gate' && session === 'AN') {
+                        studentRecord.gateAN.push(day);
+                    } else if (lateType === 'Canteen' && session === 'FN') {
+                        studentRecord.canteenFN.push(day);
+                    } else if (lateType === 'Canteen' && session === 'AN') {
+                        studentRecord.canteenAN.push(day);
+                    }
+                });
+
+                const wb = XLSX.utils.book_new();
+                for (const branch in branchData) {
+                    const studentDetails = branchData[branch];
+                    const sheetData = Object.keys(studentDetails).map(studentId => {
+                        const info = studentDetails[studentId];
+                        
+                        const sortAndJoin = (arr) => arr.sort((a, b) => a - b).join(', ');
+                        
+                        return {
+                            'Student ID': studentId,
+                            'Total Lates': info.totalLates,
+                            'Gate Lates (FN)': sortAndJoin(info.gateFN),
+                            'Gate Lates (AN)': sortAndJoin(info.gateAN),
+                            'Canteen Lates (FN)': sortAndJoin(info.canteenFN),
+                            'Canteen Lates (AN)': sortAndJoin(info.canteenAN)
+                        };
+                    }).sort((a, b) => b['Total Lates'] - a['Total Lates']);
+
+                    const ws = XLSX.utils.json_to_sheet(sheetData);
+                    XLSX.utils.book_append_sheet(wb, ws, branch);
+                }
+
+                XLSX.writeFile(wb, `Late_Students_Monthly_Summary_${selectedMonth}.xlsx`);
+                reportMessage.textContent = 'Monthly summary downloaded successfully.';
+                reportMessage.className = 'success-message';
+            } catch (error) {
+                console.error('Error generating monthly report:', error);
+                reportMessage.textContent = `Error: ${error.message}`;
+                reportMessage.className = 'error-message';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function renderImposeFineForm(containerId, fixedBranch) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const formId = `form-${containerId}`;
+            let branchYearFilters = '';
+            if (!fixedBranch) {
+                branchYearFilters = `
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="${formId}-branch">Branch:</label>
+                                <select id="${formId}-branch" class="impose-fine-filter">
+                                    <option value="">-- Select Branch --</option>
+                                    <option value="MECH">MECH</option><option value="EEE">EEE</option><option value="ECE">ECE</option>
+                                    <option value="AIML">AIML</option><option value="CIOT">CIOT</option><option value="CME">CME</option>
+                                    <option value="CIVIL">CIVIL</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="${formId}-year">Year:</label>
+                                <select id="${formId}-year" class="impose-fine-filter">
+                                    <option value="">-- Select Year --</option>
+                                    <option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option>
+                                </select>
+                            </div>
+                        </div>`;
+            }
+
+            const formHTML = `
+                    <div class="impose-fine-form" id="${formId}">
+                        <h3>Impose Manual Fine</h3>
+                        ${branchYearFilters}
+                        <div class="form-group">
+                           <label for="${formId}-quick-entry">Quick Entry (comma-separated last digits):</label>
+                           <input type="text" id="${formId}-quick-entry" class="impose-fine-quick-entry">
+                        </div>
+                        <div class="form-group">
+                            <label>Select Students from List:</label>
+                            <div id="${formId}-student-list" class="student-list-container impose-fine-student-list">
+                               <p>Please select a ${fixedBranch ? 'year' : 'branch and year'} to see the student list.</p>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="${formId}-amount">Fine Amount (₹) per student:</label>
+                                <input type="number" id="${formId}-amount" min="1" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="${formId}-remarks">Remarks (Reason for fine):</label>
+                            <textarea id="${formId}-remarks" rows="2" required></textarea>
+                        </div>
+                        <button class="action-button impose-fine-btn">Impose Fine on Selected</button>
+                        <p id="${formId}-message" style="text-align: center; margin-top: 10px;"></p>
+                    </div>`;
+            container.innerHTML = formHTML;
+
+            if (fixedBranch) {
+                const yearFilter = document.getElementById(hodConfig[auth.currentUser.email].yearFilterId);
+                yearFilter.addEventListener('change', () => populateImposeFineStudents(formId, fixedBranch, yearFilter.value));
+                if (yearFilter.value) {
+                    populateImposeFineStudents(formId, fixedBranch, yearFilter.value);
+                }
+            }
+        }
+
+        function populateImposeFineStudents(formId, branch, year) {
+            const studentListContainer = document.getElementById(`${formId}-student-list`);
+            if (!studentListContainer) return;
+            const students = allStudents[branch]?.[year] || [];
+            if (students.length === 0) {
+                studentListContainer.innerHTML = '<p>No students found for this selection.</p>';
+                return;
+            }
+            let checkboxHTML = '';
+            students.forEach(studentId => {
+                const lastDigits = parseInt(studentId.slice(-3), 10);
+                checkboxHTML += `<label style="display: block;"><input type="checkbox" class="impose-fine-checkbox" value="${studentId}" data-last-digits="${lastDigits}" data-branch="${branch}" data-year="${year}"> ${studentId}</label>`;
+            });
+            studentListContainer.innerHTML = checkboxHTML;
+        }
+
+        document.body.addEventListener('change', (e) => {
+            if (e.target.classList.contains('impose-fine-filter')) {
+                const form = e.target.closest('.impose-fine-form');
+                const formId = form.id;
+                const branch = form.querySelector(`#${formId}-branch`).value;
+                const year = form.querySelector(`#${formId}-year`).value;
+                if (branch && year) {
+                    populateImposeFineStudents(formId, branch, year);
+                } else {
+                    form.querySelector(`#${formId}-student-list`).innerHTML = '<p>Please select a branch and year to see the student list.</p>';
+                }
+            }
+            if (e.target.classList.contains('impose-fine-checkbox')) {
+                const form = e.target.closest('.impose-fine-form');
+                const formId = form.id;
+                const checkedNumbers = [];
+                form.querySelectorAll('.impose-fine-checkbox:checked').forEach(cb => {
+                    checkedNumbers.push(cb.dataset.lastDigits);
+                });
+                form.querySelector(`#${formId}-quick-entry`).value = checkedNumbers.join(', ');
+            }
+        });
+
+        document.body.addEventListener('input', (e) => {
+            if (e.target.classList.contains('impose-fine-quick-entry')) {
+                const form = e.target.closest('.impose-fine-form');
+                const numbers = new Set(e.target.value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)));
+                form.querySelectorAll('.impose-fine-checkbox').forEach(cb => {
+                    cb.checked = numbers.has(parseInt(cb.dataset.lastDigits));
+                });
+            }
+        });
+
+        document.body.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('impose-fine-btn')) {
+                e.preventDefault();
+                const button = e.target;
+                const form = button.closest('.impose-fine-form');
+                const formId = form.id;
+                const selectedStudents = Array.from(form.querySelectorAll('.impose-fine-checkbox:checked'));
+                const amount = parseFloat(form.querySelector(`#${formId}-amount`).value);
+                const remarks = form.querySelector(`#${formId}-remarks`).value;
+                const messageEl = form.querySelector(`#${formId}-message`);
+                if (selectedStudents.length === 0 || !amount || !remarks.trim()) {
+                    messageEl.textContent = 'Please select student(s) and fill all fields.';
+                    messageEl.className = 'error-message';
+                    return;
+                }
+                if (amount <= 0) {
+                    messageEl.textContent = 'Fine amount must be positive.';
+                    messageEl.className = 'error-message';
+                    return;
+                }
+                button.disabled = true;
+                button.textContent = 'Imposing...';
+                const now = new Date();
+                const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                let successCount = 0;
+                for (const checkbox of selectedStudents) {
+                    const fineData = {
+                        studentId: checkbox.value,
+                        branch: checkbox.dataset.branch,
+                        year: checkbox.dataset.year,
+                        totalFine: amount,
+                        amountPaid: 0,
+                        status: 'unpaid',
+                        remarks: remarks.trim(),
+                        monthYear,
+                        assignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    };
+                    try {
+                        await db.collection('fines').add(fineData);
+                        successCount++;
+                    } catch (err) {
+                        console.error(`Failed to impose fine on ${checkbox.value}:`, err);
+                    }
+                }
+                messageEl.textContent = `Fines imposed successfully on ${successCount} student(s).`;
+                messageEl.className = 'success-message';
+                form.querySelector(`#${formId}-amount`).value = '';
+                form.querySelector(`#${formId}-remarks`).value = '';
+                form.querySelector(`#${formId}-quick-entry`).value = '';
+                form.querySelectorAll('.impose-fine-checkbox').forEach(cb => cb.checked = false);
+                const user = auth.currentUser;
+                if (user) {
+                    if (hodConfig[user.email]) {
+                        const hodInfo = hodConfig[user.email];
+                        loadHODFines(hodInfo.branch, hodInfo.resultsId, hodInfo.yearFilterId);
+                    } else if (user.email === 'principal@avgr.com' || user.email === 'mentor@avgr.com') {
+                        loadAllFinesPrincipal();
+                    }
+                }
+                button.disabled = false;
+                button.textContent = 'Impose Fine on Selected';
+            }
+        });
+    </script>
+</body>
+</html>
